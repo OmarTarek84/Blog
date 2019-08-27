@@ -1,0 +1,49 @@
+.post {
+    flex: 0 0 31%;
+    margin-top: 23px;
+    margin: 3px;
+    padding: 10px;
+    background-color: white !important;
+}
+
+@media screen and (max-width: 1000px) {
+    .post {
+        flex: 0 0 48%;
+    }
+}
+
+@media screen and (max-width: 767px) {
+    .post {
+        flex: 0 0 87%;
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
+
+.post__title {
+    text-align: center;
+    padding: 4px 9px;
+    background-color: #5CDB95;
+    color: white;
+    font-size: 19px;
+    font-weight: bold;
+}
+
+.post__desc {
+    padding: 4px 9px;
+    margin-top: 10px;
+}
+
+.post .post__button__link {
+    text-align: center;
+    margin-top: 12px;
+}
+
+.post .post__button__link a {
+    display: inline-block;
+    background-color: #05386B;
+    color: white;
+    font-weight: bold;
+    padding: 8px 12px;
+    text-decoration: none;
+}

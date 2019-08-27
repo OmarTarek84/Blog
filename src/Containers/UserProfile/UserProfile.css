@@ -1,0 +1,169 @@
+.userProfile {
+    padding: 50px;
+    background-color: #EDF5E1;
+}
+
+@media screen and (max-width: 490px) {
+    .userProfile {
+        padding: 15px;
+    }
+
+    .userProfile h1 {
+        text-align: center;
+    }
+}
+
+.userProfile__userActivities-flex {
+    display: flex;
+    justify-content: center;
+}
+
+.userProfile__userActivities-flex__activity {
+    flex: 0 0 33%;
+    font-size: 32px;
+    font-weight: bold;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    border-right: 1px solid grey;
+    text-align: center;
+}
+
+@media screen and (max-width: 720px) {
+    .userProfile__userActivities-flex__activity {
+        font-size: 22px;
+    }
+}
+
+@media screen and (max-width: 700px) {
+    .userProfile__userActivities-flex {
+        flex-wrap: wrap;
+        margin-top: 30px;
+    }
+
+    .userProfile__userActivities-flex__activity {
+        flex: 0 0 90%;
+        text-align: center;
+        border-right: none;
+    }
+}
+
+.userProfile__userActivities-flex__activity ul {
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+}
+
+.userProfile__userActivities-flex__activity ul li {
+    text-align: center;
+}
+
+.userProfile__userActivities-flex__activity ul li span,
+.userProfile__userActivities-flex__activity ul li a {
+    font-size: 17px;
+    text-decoration: none;
+    cursor: pointer;
+    color: #05386B;
+    display: inline-block;
+    font-weight: 600;
+}
+
+.userProfile__userActivities-flex__activity ul li span:hover {
+    text-decoration: underline;
+}
+
+.userProfile__userActivities-flex__activity span {
+    color: #05386B;
+    font-weight: bolder;
+}
+
+.editProfile__icon {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+
+.editProfile__icon i {
+    color: red;
+    font-size: 40px;
+    cursor: pointer;
+}
+
+.editProfile__form {
+    margin-top: 30px;
+}
+
+.editProfile__form h1 {
+    margin: 0;
+    margin-top: 12px;
+}
+
+.editProfile__form div:not(:first-of-type) {
+    margin-top: 25px;
+}
+
+.editProfile__form div label {
+    font-size: 20.5px;
+}
+
+.editProfile__form div input, .editProfile__form div textarea {
+    display: block;
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid grey;
+    padding: 6px 10px;
+    background-color: transparent;
+    margin-top: 10px;
+    outline: none;
+}
+
+@media screen and (max-width: 490px) {
+    .editProfile__icon i {
+        font-size: 21px !important;
+    }
+}
+
+.ModalOpen {
+    animation: modalopen 1s ease-in-out;
+}
+
+.ModalClose {
+    animation: modalclose 1s ease-in-out;
+}
+
+@keyframes modalopen {
+    0% {
+        transform: scale(0) translate(-50%, -50%);
+        transform-origin: left;
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1) translate(-50%, -50%);
+        transform-origin: left;
+        opacity: 1;
+    }
+}
+
+@keyframes modalclose {
+    0% {
+        transform: scale(1) translate(-50%, -50%);
+        transform-origin: left;
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(0) translate(-50%, -50%);
+        transform-origin: left;
+        opacity: 0;
+    }
+}
+
+.editProfile__form img {
+    width: 120px;
+    height: 120px;
+    margin-top: 55px;
+}
+
+.userProfile .profileModal .editProfile__form div {
+    height: 28px;
+}

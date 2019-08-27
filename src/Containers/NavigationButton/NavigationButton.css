@@ -1,0 +1,116 @@
+.nav label {
+    position: fixed;
+    padding: 6px;
+    right: 60px;
+    top: 60px;
+    padding-bottom: 17px;
+    opacity: 0;
+}
+
+.nav input[type="checkbox"] {
+    position: absolute;
+    visibility: hidden;
+}
+
+.navigationButton__marks {
+    position: fixed;
+    top: 60px;
+    right: 60px;
+    background-color: #05386B;
+    padding: 10px;
+    z-index: 99;
+    cursor: pointer;
+    box-shadow: 0px 1px 4px -1px
+}
+
+@media screen and (max-width: 703px) {
+    .navigationButton__marks {
+        top: 40px;
+        right: 15px;
+    }
+}
+
+.navigationButton__marks div {
+    width: 30px;
+    height: 3px;
+    background-color: white;
+    margin-top: 5px;
+}
+
+.nav__navItems {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, .9);
+    z-index: 9998;
+}
+
+.nav__navItems__close {
+    position: fixed;
+    top: 60px;
+    right: 60px;
+    background-color: white;
+    padding: 10px;
+    padding-bottom: 19px;
+}
+
+.nav__navItems__close__marks {
+    position: relative;
+    cursor: pointer;
+    z-index: 9999;
+}
+
+.nav__navItems__close__marks div {
+    width: 30px;
+    height: 3px;
+    background-color: black;
+    margin-top: 5px;
+}
+
+.nav__navItems__close__marks div:first-child {
+    transform: rotate(-50deg);
+    position: relative;
+    top: 8px;
+}
+
+.nav__navItems__close__marks div:last-child {
+    transform: rotate(-130deg);
+}
+
+.nav__navItems__items {
+    list-style-type: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.OpenNav {
+    animation: openNav .7s ease-in-out
+}
+
+.CloseNav {
+    animation: closeNav .7s ease-in-out;
+}
+
+@keyframes openNav {
+    0% {
+        transform: translateY(-100%);
+    }
+
+    100% {
+        transform: translateY(0);
+    }
+}
+
+@keyframes closeNav {
+    0% {
+        transform: translateY(0);
+    }
+
+    100% {
+        transform: translateY(-100%);
+    }
+}

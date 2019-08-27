@@ -1,0 +1,39 @@
+.auth .formParent div {
+    margin-top: 8px;
+}
+
+.auth .formParent div label {
+    font-weight: bold;
+    color: #05386B;
+    font-size: 19px;
+}
+
+.auth .formParent div input {
+    display: block;
+    outline: none;
+    width: 100%;
+    border-radius: 5px;
+    padding: 7px 12px;
+    margin-top: 5px;
+}
+
+textarea {
+    height: 100px;
+    overflow-y: scroll;
+}
+
+.invalid {
+    border: 2px solid red;
+}
+
+.valid {
+    border: 2px solid green;
+}
+
+.invalid-newpost {
+    border-bottom: 1px solid red !important;
+}
+
+.valid-newpost {
+    border-bottom: 1px solid green !important;
+}

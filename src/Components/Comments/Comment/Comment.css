@@ -1,0 +1,45 @@
+.post__comments {
+    padding: 50px;
+}
+
+@media screen and (max-width: 500px) {
+    .post__comments {
+        padding: 10px;
+    }
+}
+
+.post__comments__comments {
+    margin-top: 15px;
+    padding: 20px;
+}
+
+
+.post__comments__comments h3 {
+    border-bottom: 1px solid #5CDB95;
+}
+
+.post__comments__comments__comment {
+    margin-top: 15px;
+    background-color: white;
+    padding: 10px 14px;
+    border: 1px solid #05386B;
+}
+
+.post__comments__comments h3 span {
+    color: #5CDB95;
+    font-weight: bolder;
+}
+
+.post__comments__comments__comment p:first-child {
+    font-size: 21px;
+}
+
+.post__comments__comments__comment p:not(:first-child) {
+    font-size: 16px;
+    margin-top: 15px;
+    background-color: rgba(255, 209, 209, 0.6)
+}
+
+.post__comments__comments__comment p span {
+    font-weight: bold;
+}

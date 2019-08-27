@@ -1,0 +1,23 @@
+.myButton {
+    background-color: #05386B;
+    color: white;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 3px;
+    margin-top: 17px;
+    display: block;
+    cursor: pointer;
+}
+
+.centered {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+button:disabled {
+    opacity: .5;
+}
+
+.myButton.red {
+    background-color: rgb(226, 36, 36);
+}

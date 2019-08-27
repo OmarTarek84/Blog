@@ -1,0 +1,97 @@
+
+.ModalOpen {
+    animation: modalopen 1s ease-in-out;
+}
+
+.ModalClose {
+    animation: modalclose 1s ease-in-out;
+}
+
+.editPost {
+    padding: 40px;
+    background-color: #EDF5E1;
+}
+
+.editPost__form h1 {
+    margin-top: 10px;
+}
+
+.editPost__form {
+    margin-top: 5px;
+}
+
+.editPost__form div {
+
+}
+
+.editPost__icon {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+
+.editPost__icon i {
+    color: red;
+    font-size: 40px;
+    cursor: pointer;
+}
+
+.editPost__form div:not(:first-of-type) {
+    margin-top: 25px;
+}
+
+.editPost__form div label {
+    font-size: 20.5px;
+}
+
+.editPost__form div input, .editPost__form div textarea {
+    display: block;
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid grey;
+    padding: 6px 10px;
+    background-color: transparent;
+    margin-top: 10px;
+    outline: none;
+}
+
+@keyframes modalopen {
+    0% {
+        transform: scale(0) translate(-50%, -50%);
+        transform-origin: left;
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1) translate(-50%, -50%);
+        transform-origin: left;
+        opacity: 1;
+    }
+}
+
+@keyframes modalclose {
+    0% {
+        transform: scale(1) translate(-50%, -50%);
+        transform-origin: left;
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(0) translate(-50%, -50%);
+        transform-origin: left;
+        opacity: 0;
+    }
+}
+
+.imageSelected {
+    width: 150px;
+    height: 150px;
+}
+
+.eWkWwl {
+    background-color: #5CDB95;
+}
+
+.cHykBG {
+    background-color: #05386B;
+}

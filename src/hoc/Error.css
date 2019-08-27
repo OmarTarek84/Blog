@@ -1,0 +1,38 @@
+.error h1 {
+    text-decoration: underline;
+}
+
+@media screen and (max-width: 510px) {
+    .error h1 {
+        font-size: 19px;
+    }
+}
+
+.error p {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 20px;
+}
+
+.editProfile__icon {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+
+.editProfile__icon i {
+    color: red;
+    font-size: 40px;
+    cursor: pointer;
+}
+
+@media screen and (max-width: 510px) {
+    .editProfile__icon {
+        top: 10px;
+        right: 10px;
+    }
+
+    .editProfile__icon i {
+        font-size: 20px;
+    }
+}

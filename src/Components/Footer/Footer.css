@@ -1,0 +1,15 @@
+footer {
+    padding: 10px;
+    background-color: black;
+}
+
+footer p {
+    text-align: center;
+    font-weight: bold;
+    color: white;
+}
+
+footer p span {
+    text-decoration: underline;
+    cursor: pointer;
+}

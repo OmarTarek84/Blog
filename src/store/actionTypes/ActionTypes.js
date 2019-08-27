@@ -1,0 +1,4 @@
+export const SIGNINSTART = 'SIGNINSTART';
+export const SIGNINFAIL = 'SIGNINFAIL';
+export const SIGNINSUCCESS = 'SIGNINSUCCESS';
+export const LOGOUT = 'LOGOUT';

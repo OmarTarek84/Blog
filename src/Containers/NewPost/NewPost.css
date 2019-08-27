@@ -1,0 +1,44 @@
+.newPost {
+    padding: 40px;
+    background-color: #EDF5E1;
+}
+
+.newPost h1 {
+
+}
+
+.newPost__form {
+    margin-top: 40px;
+}
+
+.newPost__form div {
+
+}
+
+.newPost__form div:not(:first-of-type) {
+    margin-top: 25px;
+}
+
+.newPost__form div label {
+    font-size: 20.5px;
+}
+
+.newPost__form div input, .newPost__form div textarea {
+    display: block;
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid grey;
+    padding: 6px 10px;
+    background-color: transparent;
+    margin-top: 10px;
+    outline: none;
+}
+
+.imageSelected img {
+    width: 200px;
+    height: 100%;
+}
+
+.dWIApO {
+    margin: 0 !important;
+}
