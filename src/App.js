@@ -1,37 +1,37 @@
 import React, {Suspense, Component} from 'react';
 import {Switch, Route, withRouter, Redirect} from 'react-router-dom';
 import './App.css';
-import Layout from './Components/Layout/Layout';
-import HomePage from './Containers/Home/Home';
-import Spinner from './Components/Spinner/Spinner';
+import Layout from './shared/Layout/Layout/Layout';
+import HomePage from './home/pages/Home/Home';
+import Spinner from './shared/UI/Spinner/Spinner';
 import {connect} from 'react-redux';
 import * as ActionCreators from './store/actionCreators/User';
-import LogoutPage from './Containers/Logout/Logout';
+import LogoutPage from './auth/page/Logout/Logout';
 import Conditional from 'react-simple-conditional';
 import axios from 'axios';
 
 const Auth = React.lazy(() => {
-  return import('./Containers/Auth/Auth.js');
+  return import('./auth/page/Auth/Auth');
 });
 
 const Signin = React.lazy(() => {
-  return import('./Containers/Signin/Signin.js');
+  return import('./auth/page/Signin/Signin.js');
 });
 
 const UserProfile = React.lazy(() => {
-  return import('./Containers/UserProfile/UserProfile.js');
+  return import('./profile/pages/UserProfile/UserProfile.js');
 });
 
 const NewPost = React.lazy(() => {
-  return import('./Containers/NewPost/NewPost.js');
+  return import('./posts/pages/NewPost/NewPost');
 });
 
 const Post = React.lazy(() => {
-  return import('./Containers/Post/Post');
+  return import('./posts/pages/Post/Post');
 });
 
 const Posts = React.lazy(() => {
-  return import('./Containers/Posts/Posts');
+  return import('./posts/pages/Posts/Posts');
 });
 
 class App extends Component {

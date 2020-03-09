@@ -1,0 +1,9 @@
+{
+    "env": {
+      "MONGO_USER": "omar",
+      "MONGO_PASSWORD": "VFpVsRzNbfYNkW4u",
+      "MONGO_DATABASE": "blog",
+      "JWT_SECRET": "fdsihIGULWrewiorhRHWEI34",
+      "PRIVATE_VAPID_KEY": "IFIHJ2ufosqG5cTsOjtV9sMN-_csBelNVptITOhbskc"
+    }
+}

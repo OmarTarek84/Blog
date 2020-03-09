@@ -1,6 +1,6 @@
 import React, {Component} from 'react';
-import Modal from '../Components/EditProfileModal/EditProfileModal';
-import Backdrop from '../Components/Backdrop/Backdrop';
+import Modal from '../profile/components/EditProfileModal/EditProfileModal';
+import Backdrop from '../shared/UI/Backdrop/Backdrop';
 import './Error.css';
 
 const error = (WrappedComponent, axios) => {
