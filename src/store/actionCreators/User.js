@@ -1,5 +1,5 @@
 import axios from 'axios';
-const ActionTypes = require('../actionTypes/ActionTypes.js');
+import * as  ActionTypes from '../actionTypes/ActionTypes.js';
 
 export const signinInit = () => {
     return {
@@ -14,10 +14,11 @@ export const signinFail = (error) => {
     };
 };
 
-export const signinSucess = (token, userId) => {
+export const signinSucess = (token, userId, expDate) => {
     localStorage.setItem('token', token);
     localStorage.setItem('userId', userId);
-    localStorage.setItem('expDate', new Date().getTime() + (1 * 60 * 60 * 1000));
+    const expirDate = expDate || new Date(new Date().getTime() + (1 * 60 * 60 * 1000));
+    localStorage.setItem('expDate', expirDate);
     return {
         type: ActionTypes.SIGNINSUCCESS,
         token: token,
@@ -59,32 +60,5 @@ export const logout = () => {
     })
     return {
         type: ActionTypes.LOGOUT,
-    };
-};
-
-export const signinExpiration = (token, userId) => {
-    return dispatch => {
-        dispatch(signinSucess(token, userId));
-        setTimeout(() => {
-            dispatch(logout());
-        }, 3600 * 1000);
-    };
-};
-
-export const authenticate = () => {
-    return dispatch => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            dispatch(logout());
-        } else {
-            const expDate = new Date(localStorage.getItem('expDate'));
-            if (expDate < new Date()) {
-                dispatch(logout());
-            } else {
-                const token = localStorage.getItem('token');
-                const userId = localStorage.getItem('userId');
-                dispatch(signinExpiration(token, userId));
-            }
-        }
     };
 };

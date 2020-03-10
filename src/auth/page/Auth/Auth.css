@@ -46,3 +46,7 @@
 form.signinForm {
     width: 70%;
 }
+
+input[type='file'] {
+    margin-top: 4%;
+}

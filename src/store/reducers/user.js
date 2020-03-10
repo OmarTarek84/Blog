@@ -1,4 +1,4 @@
-const ActionTypes = require('../actionTypes/ActionTypes.js');
+import * as ActionTypes from'../actionTypes/ActionTypes.js';
 
 const initialState = {
     userId: null,

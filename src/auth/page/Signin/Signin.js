@@ -9,10 +9,12 @@ import { useForm } from "../../../shared/Form/FormState/FormState";
 import { REQUIRE, EMAIL } from "../../../shared/Form/Validators/Validators";
 import Spinner from "../../../shared/UI/Spinner/Spinner";
 import ErrorModal from "../../../shared/UI/ErrorModal/ErrorModal";
+import { useDispatch } from "react-redux";
 
 const Signin = props => {
   const { sendRequest, isLoading } = useHttpClient();
   const [signinError, setSigninError] = useState('');
+  const dispatch = useDispatch();
   const [initialState, inputHandler] = useForm(
     {
       email: {
@@ -46,13 +48,13 @@ const Signin = props => {
     };
 
     try {
-      const responseData = await sendRequest("/graphql", requestBody, {
+      const responseData = await sendRequest("graphql", requestBody, {
         "Content-Type": "application/json"
       });
       const token = responseData.data.data.loginUser.token;
       const userId = responseData.data.data.loginUser.userId;
-      UserActionCreators.signinSucess(token, userId);
-      props.history.push("/posts");
+      dispatch(UserActionCreators.signinSucess(token, userId, null));
+      // props.history.push("/posts");
     } catch (err) {
       setSigninError(err);
     }

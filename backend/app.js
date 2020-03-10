@@ -77,7 +77,7 @@ app.use('/graphql', graphQlHttp({
     graphiql: true
 }));
 
-app.put('/insertImage', (req, res, next) => {
+app.post('/insertImage', (req, res, next) => {
     if (!req.file) {
         jimp.read('backend/images/' + 'avatar.jpg').then(image => {
             return image.resize(400, 400).write('backend/images/' + 'avatar.jpg');

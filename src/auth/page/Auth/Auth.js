@@ -1,244 +1,178 @@
-import React, {Component} from 'react';
-import './Auth.css';
-import Input from '../../../shared/Form/Form/Form';
-import Button from '../../../shared/UI/Button/Button';
-import axios from 'axios';
-import ErrorComponent from '../../../hoc/Error';
+import React, { useState } from "react";
+import "./Auth.css";
+import Input from "../../../shared/Form/Input/Input";
+import Button from "../../../shared/UI/Button/Button";
+import { useHttpClient } from "../../../shared/http/http";
+import { useForm } from "../../../shared/Form/FormState/FormState";
+import {
+  REQUIRE,
+  EMAIL,
+  MINLENGTH,
+  MATCHPASSWORDS
+} from "../../../shared/Form/Validators/Validators";
+import ErrorModal from "../../../shared/UI/ErrorModal/ErrorModal";
+import Spinner from "../../../shared/UI/Spinner/Spinner";
 
-class Auth extends Component {
+const Auth = props => {
+  const [authErr, setAuthError] = useState("");
+  const [file, setFile] = useState(null);
+  const [imageSelected, setImageSelected] = useState(null);
+  const { isLoading, sendRequest } = useHttpClient();
+  const [initialState, inputHandler] = useForm(
+    {
+      name: {
+        value: "",
+        valid: false
+      },
+      email: {
+        value: "",
+        valid: false
+      },
+      password: {
+        value: "",
+        valid: false
+      },
+      confirmPassword: {
+        value: "",
+        valid: false
+      }
+    },
+    false
+  );
 
-    signal = axios.CancelToken.source();
-    state = {
-        authForm: {
-            name: {
-                elementType: 'input',
-                elementConfig: {
-                    placeholder: 'Type Your Name Here',
-                    type: 'text',
-                    name: 'name',
-                    label: 'Name'
-                },
-                value: '',
-                valid: false,
-                validationRules: {
-                    required: true
-                },
-                touched: false,
-                errorMessage: 'This Field is Required!'
-            },
-            email: {
-                elementType: 'input',
-                elementConfig: {
-                    placeholder: 'Type Your Email Here',
-                    type: 'email',
-                    name: 'email',
-                    label: 'Email',
-                    
-                },
-                value: '',
-                valid: false,
-                validationRules: {
-                    required: true,
-                    emailValid: true
-                },
-                touched: false,
-                errorMessage: 'Invalid Email'
-            },
-            password: {
-                elementType: 'input',
-                elementConfig: {
-                    placeholder: 'Type Your Password Here',
-                    type: 'password',
-                    name: 'password',
-                    label: 'Password'
-                },
-                value: '',
-                valid: false,
-                validationRules: {
-                    required: true,
-                    minLength: true
-                },
-                touched: false,
-                errorMessage: 'Password should have at least 8 characters'
-            },
-            confirm_password: {
-                elementType: 'input',
-                elementConfig: {
-                    placeholder: 'Confirm Your Password',
-                    type: 'password',
-                    name: 'confirmpassword',
-                    label: 'Confirm Password'
-                },
-                value: '',
-                valid: false,
-                validationRules: {
-                    required: true,
-                    passwordMatch: true
-                },
-                touched: false,
-                errorMessage: 'Passwords Do Not Match'
-            },
-            Photo: {
-                elementType: 'input',
-                elementConfig: {
-                    type: 'file',
-                    name: 'image',
-                    label: 'Pick Your Profile Photo'
-                },
-                validationRules: {
-                    required: true
-                },
-                value: '',
-                valid: true,
-                errorMessage: ''
-            }
-        },
-        formIsValid: false,
-        imageSelected: null,
-        file: null,
-        isLogged: false
+  const changeFile = event => {
+    const filee = event.target.files[0];
+    setFile(filee);
+    setImageSelected(URL.createObjectURL(filee));
+  };
+
+  const signup = async event => {
+    event.preventDefault();
+    const formData = new FormData();
+    formData.append("image", file);
+    try {
+      const response = await sendRequest("/insertImage", formData, {
+        "Content-Type": "application/json"
+      });
+      const imagePath = response.data.filepath;
+      if (response.status >= 400) {
+        setAuthError('Server Error');
+      } else {
+        const requestBody = {
+          query: `
+                            mutation CreateUser($name: String!, $email: String!, $password: String, $photo: String!) {
+                                createUser(userInput: {name: $name, email: $email, password: $password, photo: $photo}) {
+                                    _id
+                                    name
+                                    email
+                                    photo
+                                  }
+                            }
+                        `,
+          variables: {
+            name: initialState.inputs.name.value,
+            email: initialState.inputs.email.value,
+            password: initialState.inputs.password.value,
+            photo: imagePath
+          }
+        };
+
+        const response2 = await sendRequest("/graphql", requestBody, {
+          "Content-Type": "application/json"
+        });
+        if (response2.status < 400) {
+          props.history.push("/signin");
+        }
+      }
+    } catch (err) {
+      setAuthError(err);
     }
+  };
 
-    componentWillUnmount() {
-        this.signal.cancel();
-    }
+  let form;
+  {
+    isLoading
+      ? (form = <Spinner />)
+      : (form = (
+          <>
+            <form>
+              <h1>Sign Up</h1>
+              <div className="formParent">
+                <Input
+                  id="name"
+                  placeholder="Type Your Name Here"
+                  onInput={inputHandler}
+                  validators={[REQUIRE()]}
+                  label="Name"
+                  type="text"
+                />
+                <Input
+                  id="email"
+                  placeholder="Type Your Email Here"
+                  onInput={inputHandler}
+                  validators={[REQUIRE(), EMAIL()]}
+                  label="Email"
+                  type="email"
+                />
+                <Input
+                  id="password"
+                  placeholder="Type Your Password Here"
+                  onInput={inputHandler}
+                  validators={[REQUIRE(), MINLENGTH(8)]}
+                  label="Password"
+                  type="password"
+                />
+                <Input
+                  id="confirmPassword"
+                  placeholder="Re-Enter Your Password"
+                  onInput={inputHandler}
+                  validators={[
+                    REQUIRE(),
+                    MATCHPASSWORDS(initialState.inputs.password.value)
+                  ]}
+                  label="Confirm Password"
+                  type="password"
+                />
+                <input type="file" name="image" onChange={changeFile} />
+              </div>
+              <Button
+                type="submit"
+                centered
+                disabled={!initialState.formIsValid || !file}
+                click={signup}
+              >
+                Submit
+              </Button>
+              <div className="image">
+                {imageSelected ? (
+                  <img
+                    style={{ width: "150px", height: "150px" }}
+                    src={imageSelected}
+                    alt="sdilhf"
+                  />
+                ) : null}
+              </div>
+            </form>
+          </>
+        ));
+  }
 
-    changeInput = (event, inputType) => {
-        const authForm = {...this.state.authForm};
-        const stateElement = authForm[inputType];
-        stateElement.value = event.target.value;
-        stateElement.touched = true;
-        if (inputType === 'Photo') {
-            const file = event.target.files[0];
-            this.setState({imageSelected: URL.createObjectURL(file), file: file});
+  return (
+    <div className="auth">
+      {form}
+      <ErrorModal
+        open={!!authErr}
+        onClose={() => setAuthError("")}
+        errorMessage={
+          authErr.response &&
+          authErr.response.data &&
+          authErr.response.data.errors[0]
+            ? authErr.response.data.errors[0].message
+            : "Unknown Error, We'll fix it soon"
         }
-        if (inputType === 'password') {
-            authForm['confirm_password'].value = '';
-            authForm['confirm_password'].valid = false;
-        }
-        if (inputType === 'confirm_password') {
-            if (stateElement.value === authForm['password'].value) {
-                stateElement.valid = true;
-            } else {
-                stateElement.valid = false;
-            }
-        } else {
-            stateElement.valid = this.checkValidity(stateElement.validationRules, stateElement.value);
-        }
-        authForm[inputType] = stateElement;
-
-        let formIsValid = true;
-        for (let key in authForm) {
-            formIsValid = authForm[key].valid && formIsValid;
-        }
-
-        this.setState({authForm: authForm, formIsValid: formIsValid});
-    }
-
-    checkValidity = (rules, value) => {
-        let isValid = true;
-        if (rules.required) {
-            isValid = value.trim() !== '' && isValid;
-        }
-
-        if (rules.emailValid) {
-            var re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-            isValid = re.test(value) && isValid;
-        }
-
-        if (rules.minLength) {
-            isValid = value.length >= 8 && isValid;
-        }
-
-        return isValid;
-
-    }
-
-    signup = (event) => {
-        this.setState({isLogged: true});
-        event.preventDefault();
-        const formData = new FormData();
-        formData.append('image', this.state.file);
-        axios.put('/insertImage', formData).then(path => {
-            const imagePath = path.data.filepath;
-            const requestBody = {
-                query: `
-                    mutation CreateUser($name: String!, $email: String!, $password: String, $photo: String!) {
-                        createUser(userInput: {name: $name, email: $email, password: $password, photo: $photo}) {
-                            _id
-                            name
-                            email
-                            photo
-                          }
-                    }
-                `,
-                variables: {
-                    name: this.state.authForm.name.value,
-                    email: this.state.authForm.email.value,
-                    password: this.state.authForm.password.value,
-                    photo: imagePath
-                }
-            };
-    
-            return axios.post('http://localhost:8080/graphql', requestBody, {
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                cancelToken: this.signal.token
-            }).then(result => {
-                if (result !== undefined) {
-                    this.props.history.push('/signin');
-                }
-                this.setState({isLogged: false});
-            })
-            .catch(err => {
-                this.setState({isLogged: false});
-                console.log(err);
-            });
-        })
-    }
-
-    render() {
-        let elementsArray = [];
-        for (let key in this.state.authForm) {
-            elementsArray.push({
-                id: key,
-                config: this.state.authForm[key]
-            });
-        }
-        return (
-            <div className="auth">
-                <form>
-                    <h1>Sign Up</h1>
-                    <div className="formParent">
-                    {elementsArray.map(element => {
-                        return (
-                            <div key={element.id}>
-                                <Input value={element.config.value}
-                                      elementType={element.config.elementType}
-                                      elementConfig={element.config.elementConfig}
-                                      label={element.config.elementConfig.label}
-                                      changed={(event) => this.changeInput(event, element.id)}
-                                      invalid={!element.config.valid}
-                                      touched={element.config.touched}
-                                      errorMessage={element.config.errorMessage} />
-                            </div>
-                        )
-                    })}
-                    </div>
-                    <Button type="submit" centered disabled={!this.state.formIsValid || this.state.isLogged} click={this.signup}>Submit</Button>
-                    <div className="image">
-                        {this.state.imageSelected
-                         ?
-                         <img style={{width: '150px', height: '150px'}} src={this.state.imageSelected} alt="sdilhf" />
-                         :
-                         null
-                        }
-                    </div>
-                </form>
-            </div>
-        )
-    }
-}
+      />
+    </div>
+  );
+};
 
 export default Auth;

@@ -30,20 +30,20 @@ export const Validators = (validators, value) => {
     }
     if (validator.type === MAXLENGTH_TYPE) {
       isValid = isValid && value.trim().length <= validator.val;
-      errorMessages[2].appear = value.trim().length > validator.val;
+      errorMessages[2].appear = value.trim().length > validator.val && value.trim().length > 0;
     }
     if (validator.type === MINLENGTH_TYPE) {
       isValid = isValid && value.trim().length >= validator.val;
-      errorMessages[5].appear = value.trim().length < validator.val;
+      errorMessages[5].appear = value.trim().length < validator.val && value.trim().length > 0;
     }
     if (validator.type === EMAIL_TYPE) {
       const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
       isValid = isValid && re.test(value);
       errorMessages[3].appear = !re.test(value) && value.trim().length > 0;
     }
-    if (validator.type === MATCHPASSWORDS) {
+    if (validator.type === VALIDATOR_TYPE_MATCHPASSWORDS) {
       isValid = isValid && value === validator.val;
-      errorMessages[4].appear = (value !== validator.val);
+      errorMessages[4].appear = value !== validator.val && value.trim().length > 0;
     }
   }
   return {isValid: isValid, errorMessages: errorMessages};
