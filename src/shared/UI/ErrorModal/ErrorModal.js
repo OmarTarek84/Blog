@@ -19,12 +19,12 @@ const ErrorModal = props => {
         }}
       >
         {props.firstButton ? (
-          <Button type="button" clicked={props.firstButtonMethod}>
+          <Button type="button" click={props.firstButtonMethod}>
             {props.firstButtonTitle}
           </Button>
         ) : null}
         {props.secondButton ? (
-          <Button type="button" clicked={props.secondButtonMethod}>
+          <Button type="button" click={props.secondButtonMethod}>
             {props.secondButtonTitle}
           </Button>
         ) : null}

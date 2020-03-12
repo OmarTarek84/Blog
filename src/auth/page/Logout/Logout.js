@@ -7,7 +7,7 @@ const Logout = props => {
   const dispatch = useDispatch();
   useEffect(() => {
     dispatch(ActionCreators.logout());
-  }, []);
+  }, [dispatch]);
   return <Redirect to="/" />;
 };
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import './Posts.css';
-import Button from '../../Button/Button';
+import Button from '../../../shared/UI/Button/Button';
 import Spinner from '../../../shared/UI/Spinner/Spinner';
 
 const post = props => {

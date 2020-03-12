@@ -7,6 +7,8 @@ import {Provider} from 'react-redux';
 import {createStore, applyMiddleware, compose, combineReducers} from 'redux';
 import UserReducer from './store/reducers/user';
 import thunk from 'redux-thunk';
+import PostReducer from './store/reducers/posts';
+import AuthReducer from './store/reducers/auth';
 
 const logger = store => {
     return next => {
@@ -17,7 +19,9 @@ const logger = store => {
 };
 
 const rootReducer = combineReducers({
-    auth: UserReducer
+    auth: AuthReducer,
+    posts: PostReducer,
+    user: UserReducer
 });
 
 const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;

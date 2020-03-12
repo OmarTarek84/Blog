@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '../../shared/http/axios';
 import * as  ActionTypes from '../actionTypes/ActionTypes.js';
 
 export const signinInit = () => {

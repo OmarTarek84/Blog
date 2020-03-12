@@ -1,38 +1,16 @@
-import * as ActionTypes from'../actionTypes/ActionTypes.js';
+import * as ActionTypes from '../actionTypes/ActionTypes';
 
 const initialState = {
-    userId: null,
-    token: null,
-    loading: false,
-    error: null
+    users: []
 };
 
 const userReducer = (state = initialState, action) => {
     switch(action.type) {
-        case ActionTypes.SIGNINSTART:
+        case ActionTypes.FETCH_USERS:
             return {
                 ...state,
-                loading: true
+                users: action.users
             };
-        case ActionTypes.SIGNINSUCCESS:
-            return {
-                ...state,
-                userId: action.userId,
-                token: action.token,
-                loading: false
-            };
-        case ActionTypes.SIGNINFAIL:
-                return {
-                    ...state,
-                    error: action.error
-                };
-        case ActionTypes.LOGOUT:
-                return {
-                    ...state,
-                    userId: null,
-                    token: null,
-                    loading: false
-                };
         default:
             return state;
     }

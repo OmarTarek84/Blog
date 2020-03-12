@@ -10,6 +10,11 @@ module.exports = {
         const name = args.userInput.name;
         const password = args.userInput.password;
         const photo = args.userInput.photo;
+
+        if (!email || !name || !password) {
+            throw new Error('Please fill all the fields');
+        }
+
         return User.findOne({email: email}).then(user => {
             if (user) {
                 throw new Error('User Already Exists');
@@ -39,6 +44,9 @@ module.exports = {
     loginUser: (args, req) => {
         const email = args.loginInput.email;
         const password = args.loginInput.password;
+        if (!email || !password) {
+            throw new Error('Please fill All the fields');
+        }
         return User.findOne({email: email}).then(user => {
             if (!user) {
                 throw new Error('Incorrect Email Or Password!');
@@ -74,6 +82,9 @@ module.exports = {
         const email = args.editProfileInput.email;
         const password = args.editProfileInput.password;
         const photo = args.editProfileInput.photo;
+        if (!email || !name || !password) {
+            throw new Error('Please fill all the fields');
+        }
         if (!req.isAuth) {
             throw new Error('Not Authorized!');
         }
