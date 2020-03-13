@@ -49,12 +49,14 @@ const Signin = props => {
 
     try {
       const responseData = await sendRequest("graphql", requestBody, {
-        "Content-Type": "application/json"
+        headers: {
+          "Content-Type": "application/json"
+        }
       });
       const token = responseData.data.data.loginUser.token;
       const userId = responseData.data.data.loginUser.userId;
       dispatch(UserActionCreators.signinSucess(token, userId, null));
-      // props.history.push("/posts");
+      props.history.push("/posts");
     } catch (err) {
       setSigninError(err);
     }

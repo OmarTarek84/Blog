@@ -8,6 +8,7 @@ module.exports = (req, res, next) => {
     }
 
     const token = authHeader.split(' ')[1];
+    console.log(process.env.JWT_SECRET);
     if (!token || token === '') {
         req.isAuth = false;
         return next();

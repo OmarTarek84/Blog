@@ -21,7 +21,7 @@ const logger = store => {
 const rootReducer = combineReducers({
     auth: AuthReducer,
     posts: PostReducer,
-    user: UserReducer
+    user: UserReducer,
 });
 
 const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;

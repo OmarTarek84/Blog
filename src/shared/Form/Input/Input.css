@@ -1,22 +1,22 @@
-.form-control {
+.form-controll {
     padding-top: 2%;
   margin-left: auto;
   margin-right: auto;
   }
   
-  .form-control label,
-  .form-control input,
-  .form-control textarea {
+  .form-controll label,
+  .form-controll input,
+  .form-controll textarea {
     display: block;
   }
   
-  .form-control label {
+  .form-controll label {
     font-weight: bold;
     margin-bottom: 0.5rem;
   }
   
-  .form-control input,
-  .form-control textarea {
+  .form-controll input,
+  .form-controll textarea {
     width: 100%;
     font: inherit;
     border: 1px solid #ccc;
@@ -24,20 +24,20 @@
     padding: 0.15rem 0.25rem;
   }
   
-  .form-control input:focus,
-  .form-control textarea:focus {
+  .form-controll input:focus,
+  .form-controll textarea:focus {
     outline: none;
     background: #ebebeb;
     border-color: #510077;
   }
   
-  .form-control--invalid label,
-  .form-control--invalid p {
+  .form-controll--invalid label,
+  .form-controll--invalid p {
     color: red;
   }
   
-  .form-control--invalid input,
-  .form-control--invalid textarea {
+  .form-controll--invalid input,
+  .form-controll--invalid textarea {
     border-color: red;
     background: #ffd1d1;
   }

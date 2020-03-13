@@ -171,7 +171,6 @@ const App = props => {
             <Route path="/logout" component={LogoutPage} />
           ) : null}
           <Route path="/" component={HomePage} exact />
-          <Redirect to="/" />
         </Switch>
       </Suspense>
     </Layout>

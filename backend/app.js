@@ -31,7 +31,7 @@ app.use(bodyParser.json({limit: '50mb'}));
 app.use(compression());
 app.use(morgan('common'));
 
-app.use('/', express.static(path.join(__dirname, 'build')));
+// app.use('/', express.static(path.join(__dirname, 'build')));
 app.use('/js', express.static(path.join(__dirname, 'build', 'js')));
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/compressedimages', express.static(path.join(__dirname, 'compressedimages')));
@@ -67,9 +67,9 @@ app.use(multer({storage: storage}).single('image'));
 
 app.use(isAuth);
 
-app.get('/*', (req, res, next) => {
-    res.sendFile(path.join(__dirname, 'build', 'index.html'));
-});
+// app.get('/*', (req, res, next) => {
+//     res.sendFile(path.join(__dirname, 'build', 'index.html'));
+// });
 
 app.use('/graphql', graphQlHttp({
     schema: schema,
@@ -83,34 +83,34 @@ app.post('/insertImage', (req, res, next) => {
             return image.resize(400, 400).write('backend/images/' + 'avatar.jpg');
         });
         return res.status(201).json({
-            filepath: 'https' + '://' + req.get('host') + '/images/' + 'avatar.jpg'
+            filepath: 'http' + '://' + req.get('host') + '/images/' + 'avatar.jpg'
         });
     } else {
         jimp.read('backend/images/' + req.file.filename).then(image => {
             return image.resize(400, 400).write('backend/images/' + req.file.filename);
         });
         return res.status(201).json({
-            filepath: 'https' + '://' + req.get('host') + '/images/' + req.file.filename
+            filepath: 'http' + '://' + req.get('host') + '/images/' + req.file.filename
         });
     }
 });
 
-app.put('/insertPostImage', isAuth, multer({storage: storage}).single('image'), (req, res, next) => {
+app.post('/insertPostImage', isAuth, multer({storage: storage}).single('image'), (req, res, next) => {
     jimp.read('backend/images/' + req.file.filename).then(image => {
         return image.resize(400, 400).write('backend/images/' + req.file.filename);
     });
     return res.status(201).json({
-        filePath: 'https' + '://' + req.get('host') + '/images/' + req.file.filename
+        filePath: 'http' + '://' + req.get('host') + '/images/' + req.file.filename
     });
 });
 
-app.put('/insertupdatePostImage', isAuth, multer({storage: storage}).single('image'), function (req, res, next) {
+app.post('/insertupdatePostImage', isAuth, multer({storage: storage}).single('image'), function (req, res, next) {
     if (req.file) {
         jimp.read('backend/images/' + req.file.filename).then(image => {
             return image.resize(400, 400).write('backend/images/' + req.file.filename);
         });
         return res.status(201).json({
-            filePath: 'https' + '://' + req.get('host') + '/images/' + req.file.filename
+            filePath: 'http' + '://' + req.get('host') + '/images/' + req.file.filename
         });
     } else {
         return res.status(201).json({

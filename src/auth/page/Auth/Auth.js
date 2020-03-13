@@ -78,7 +78,9 @@ const Auth = props => {
         };
 
         const response2 = await sendRequest("/graphql", requestBody, {
-          "Content-Type": "application/json"
+          headers: {
+            "Content-Type": "application/json"
+          }
         });
         if (response2.status < 400) {
           props.history.push("/signin");

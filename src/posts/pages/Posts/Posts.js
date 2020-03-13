@@ -47,7 +47,7 @@ function readAllPosts(st) {
 }
 
 const Posts = props => {
-  const [itemPerPage, setItemPerPage] = useState(12);
+  const [itemPerPage, setItemPerPage] = useState(8);
   const [activePage, setactivePage] = useState(1);
   const [postErr, setPostsError] = useState('');
 
@@ -170,13 +170,25 @@ const Posts = props => {
                       _id
                       name
                   }
+                  comments {
+                    _id
+                    comment
+                    createdAt
+                    updatedAt
+                    user {
+                      _id
+                      name
+                    }
+                  }
                 }
             }
         `
     };
     try {
       const response = await sendRequest("graphql", requestBody, {
-        "Content-Type": "application/json"
+        headers: {
+          "Content-Type": "application/json"
+        }
       });
       const posts = response.data.data.posts;
       dispatch({
@@ -189,7 +201,7 @@ const Posts = props => {
   }, [dispatch, sendRequest]);
 
   useEffect(() => {
-    if (posts.length <= 0) {
+    if (posts.length <= 1) {
       fetchPosts();
     }
   }, [dispatch, fetchPosts, posts]);
@@ -237,8 +249,8 @@ const Posts = props => {
           linkClass={"page-link"}
           itemClass={"page-item"}
           activeClass={"active"}
-          pageRangeDisplayed={5}
-          onChange={() => handlePageChange(this)}
+          pageRangeDisplayed={8}
+          onChange={handlePageChange}
         />
       )}
       <ErrorModal

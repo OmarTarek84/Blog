@@ -1,306 +1,253 @@
-import React, {Component} from 'react';
-import './NewPost.css';
-import Button from '../../../shared/UI/Button/Button';
-import Input from '../../../shared/Form/Form/Form';
-import axios from 'axios';
-import ErrorComponent from '../../../hoc/Error';
-import {connect} from 'react-redux';
-import * as idb from 'idb';
-import { ObjectID } from 'bson';
+import React, { useState } from "react";
+import "./NewPost.css";
+import Button from "../../../shared/UI/Button/Button";
+import Input from "../../../shared/Form/Input/Input";
+import { useSelector, useDispatch } from "react-redux";
+import * as idb from "idb";
+import { ObjectID } from "bson";
 import ReactSnackBar from "react-js-snackbar";
+import { useForm } from "../../../shared/Form/FormState/FormState";
+import { useHttpClient } from "../../../shared/http/http";
+import { REQUIRE, MAXLENGTH } from "../../../shared/Form/Validators/Validators";
+import * as ActionTypes from "../../../store/actionTypes/ActionTypes";
+import ErrorModal from "../../../shared/UI/ErrorModal/ErrorModal";
 
-const dbPromise = idb.openDB('allPosts', 1, (db) => {
-    if (!db.objectStoreNames.contains('posts')) {
-        db.createObjectStore('posts', {keyPath: '_id'});
-    }
+const dbPromise = idb.openDB("allPosts", 1, db => {
+  if (!db.objectStoreNames.contains("posts")) {
+    db.createObjectStore("posts", { keyPath: "_id" });
+  }
 
-    if (!db.objectStoreNames.contains('users')) {
-        db.createObjectStore('users', {keyPath: '_id'});
-    }
+  if (!db.objectStoreNames.contains("users")) {
+    db.createObjectStore("users", { keyPath: "_id" });
+  }
 
-    if (!db.objectStoreNames.contains('sync-posts')) {
-        db.createObjectStore('sync-posts', {keyPath: '_id'});
-    }
+  if (!db.objectStoreNames.contains("sync-posts")) {
+    db.createObjectStore("sync-posts", { keyPath: "_id" });
+  }
 });
 
 function createData(st, data) {
-    return dbPromise.then(db => {
-        var transaction = db.transaction(st, 'readwrite');
-        var store = transaction.objectStore(st);
-        store.put(data);
-        return transaction.complete;
-    });
+  return dbPromise.then(db => {
+    var transaction = db.transaction(st, "readwrite");
+    var store = transaction.objectStore(st);
+    store.put(data);
+    return transaction.complete;
+  });
 }
 
-class NewPost extends Component {
-    signal = axios.CancelToken.source();
-    state = {
-        showSnackbar: false,
-        newPostForm: {
-            title: {
-                elementType: 'input',
-                elementConfig: {
-                    placeholder: 'title of your post',
-                    type: 'text',
-                    name: 'title'
-                },
-                validationRules: {
-                    required: true,
-                    maxLength: true
-                },
-                valid: false,
-                touched: false,
-                value: '',
-                label: 'Title',
-                errorMessage: 'Characters should be between 1 and 30'
-            },
-            body: {
-                elementType: 'textarea',
-                elementConfig: {
-                    placeholder: 'Body of your post',
-                    type: 'text',
-                    name: 'body'
-                },
-                validationRules: {
-                    required: true
-                },
-                valid: false,
-                touched: false,
-                value: '',
-                label: 'Body',
-                errorMessage: 'This Field Is Required'
-            },
-            postPhoto: {
-                elementType: 'input',
-                elementConfig: {
-                    type: 'file',
-                    name: 'image'
-                },
-                validationRules: {
-                    required: true,
-                },
-                valid: false,
-                touched: false,
-                value: '',
-                label: 'Image Of Your Post',
-                errorMessage: 'This Field Is Required'
-            },
-        },
-        formIsValid: false,
-        imageSelected: null,
-        buttonClicked: false,
-        file: null
-    }
+const NewPost = props => {
+  const [showSnackbar, setshowSnackbar] = useState(false);
+  const [file, setFile] = useState(null);
+  const [imageSelected, setimageSelected] = useState(null);
+  const [buttonClicked, setbuttonClicked] = useState(false);
+  const [newPostError, setnewPostError] = useState(false);
 
-    componentWillUnmount() {
-        this.signal.cancel('cancel');
-    }
+  const token = useSelector(state => state.auth.token);
+  const userId = useSelector(state => state.auth.userId);
 
-    changeInput = (event, inputType) => {
-        const newPostForm = {...this.state.newPostForm};
-        const stateElement = newPostForm[inputType];
-        if (inputType === 'postPhoto' && event.target.files[0]) {
-            const file = event.target.files[0];
-            this.setState({imageSelected: URL.createObjectURL(file), file: file});
+  const { isLoading, sendRequest } = useHttpClient();
+  const dispatch = useDispatch();
+
+  const [initialState, inputHandler] = useForm(
+    {
+      title: {
+        value: "",
+        isValid: false
+      },
+      body: {
+        value: "",
+        isValid: false
+      }
+    },
+    false
+  );
+
+  //sync new post when offline
+
+  const sendNewPostToDB = async event => {
+    event.preventDefault();
+    setbuttonClicked(true);
+    setshowSnackbar(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      const fileResponse = await sendRequest("insertPostImage", formData, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token
         }
-        stateElement.value = event.target.value;
-        stateElement.touched = true;
-        stateElement.valid = this.checkValidity(stateElement.validationRules, stateElement.value);
-        newPostForm[inputType] = stateElement;
-
-        let formIsValid = true;
-        for (let key in newPostForm) {
-            formIsValid = newPostForm[key].valid && formIsValid;
-        }
-
-        this.setState({newPostForm: newPostForm, formIsValid: formIsValid});
-    }
-
-    checkValidity = (rules, value) => {
-        let isValid = true;
-        if (rules.required) {
-            isValid = value.trim() !== '' && isValid;
-        }
-
-        if (rules.emailValid) {
-            var re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-            isValid = re.test(value) && isValid;
-        }
-
-        if (rules.maxLength) {
-            isValid = value.length <= 30 && isValid;
-        }
-
-        return isValid;
-
-    }
-
-    //sync new post when offline
-
-    sendNewPostToDB = (event) => {
-        event.preventDefault();
-        this.setState({buttonClicked: true, showSnackbar: true});
-        const formData = new FormData();
-        formData.append('image', this.state.file);
-        return axios.put('/insertPostImage', formData, {
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + this.props.token
-            }
-        }).then(path => {
-            const filepath = path.data.filePath;
-            const requestBody = {
-                query: `
+      });
+      const filepath = fileResponse.data.filePath;
+      const requestBody = {
+        query: `
                     mutation CreatePost($title: String!, $body: String!, $photo: String!) {
                         createPost(postInput: {title: $title, body: $body, photo: $photo}) {
                             _id
                             title
                             body
                             photo
-                            user {
-                              _id
-                              name
-                              email
-                              createdAt
-                              updatedAt
+                            createdAt
+                            updatedAt
+                            comments {
+                                _id
+                                comment
+                                createdAt
                             }
+                            user {
+                                _id
+                                name
+                                email
+                                createdAt
+                                photo
+                            }
+                            likes {
+                            _id
+                            name
+                        }
                           }
                     }
                 `,
-                variables: {
-                    title: this.state.newPostForm.title.value,
-                    body: this.state.newPostForm.body.value,
-                    photo: filepath
-                }
+        variables: {
+          title: initialState.inputs.title.value,
+          body: initialState.inputs.body.value,
+          photo: filepath
+        }
+      };
+
+      const createpostRes = await sendRequest("graphql", requestBody, {
+        headers: {
+          "Content-Type": "application/json",
+          authorization: "Bearer " + token
+        }
+      });
+      const newpost = createpostRes.data.data.createPost;
+      dispatch({
+        type: ActionTypes.ADD_POST,
+        post: newpost
+      });
+      navigator.serviceWorker.ready.then(reg => {
+        reg.active.postMessage(
+          JSON.stringify({
+            postId: newpost._id,
+            userId: newpost.user._id,
+            postTitle: newpost.title,
+            postPhoto: newpost.photo,
+            userName: newpost.user.name
+          })
+        );
+      });
+      // if (Notification.permission === 'granted') {
+      //     this.configurePushSub(newpost.user._id, newpost.title, newpost.photo, newpost.user.name);
+      // }
+      setshowSnackbar(false);
+      props.history.push("/posts");
+    } catch (err) {
+      setnewPostError('Failed To Create New Post');
+      setshowSnackbar(false);
+      setbuttonClicked(false);
+    }
+  };
+
+    const createNewPost = event => {
+      if (navigator.onLine) {
+        sendNewPostToDB(event);
+      } else {
+        event.preventDefault();
+        setbuttonClicked(true);
+        if ("serviceWorker" in navigator && "SyncManager" in window) {
+          navigator.serviceWorker.ready.then(sw => {
+            // sw.active.postMessage(JSON.stringify({
+            //     userId: this.props.userId,
+            //     postTitle: this.state.newPostForm.title.value,
+            //     postPhoto: postPhoto,
+            //     userName: userName
+            // }));
+            const newPost = {
+              _id: new ObjectID().toHexString(),
+              title: initialState.inputs.title.value,
+              body: initialState.inputs.body.value,
+              photo: file,
+              token: token,
+              userId: userId
             };
-    
-            return axios.post('http://localhost:8080/graphql', requestBody, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + this.props.token
-                },
-                cancelToken: this.signal.token
-            }).then(result => {
-                const newpost = result.data.data.createPost;
-                navigator.serviceWorker.ready.then(reg => {
-                    reg.active.postMessage(JSON.stringify({
-                        postId: newpost._id,
-                        userId: newpost.user._id,
-                        postTitle: newpost.title,
-                        postPhoto: newpost.photo,
-                        userName: newpost.user.name
-                    }));
-                });
-                // if (Notification.permission === 'granted') {
-                //     this.configurePushSub(newpost.user._id, newpost.title, newpost.photo, newpost.user.name);
-                // }
-                this.setState({showSnackbar: false});
-                this.props.history.push('/posts');
-            })
-            .catch(err => {
-                this.setState({buttonClicked: false});
-            });
-        })
-        .catch(err => {
-            this.setState({buttonClicked: false});
-        });
-    }
-
-    createNewPost = (event) => {
-        if (navigator.onLine) {
-            this.sendNewPostToDB(event);
-        } else {
-            event.preventDefault();
-            this.setState({buttonClicked: true});
-            if ('serviceWorker' in navigator && 'SyncManager' in window) {
-                navigator.serviceWorker.ready.then(sw => {
-                    // sw.active.postMessage(JSON.stringify({
-                    //     userId: this.props.userId,
-                    //     postTitle: this.state.newPostForm.title.value,
-                    //     postPhoto: postPhoto,
-                    //     userName: userName
-                    // }));
-                    const newPost = {
-                        _id: new ObjectID().toHexString(),
-                        title: this.state.newPostForm.title.value,
-                        body: this.state.newPostForm.body.value,
-                        photo: this.state.file,
-                        token: this.props.token,
-                        userId: this.props.userId
-                    };
-                    createData('sync-posts', newPost).then(() => {
-                        return sw.sync.register('sync-new-posts');
-                    })
-                    .then(() => {
-                        this.setState({showSnackbar: true});
-                    })
-                    .then(() => {
-                        this.props.history.push('/posts');
-                    })
-                    .catch(err => {
-                        console.log(err);
-                    })
-                });
-            }
+            createData("sync-posts", newPost)
+              .then(() => {
+                return sw.sync.register("sync-new-posts");
+              })
+              .then(() => {
+                setshowSnackbar(true);
+              })
+              .then(() => {
+                props.history.push("/posts");
+              })
+              .catch(err => {
+                console.log(err);
+              });
+          });
         }
+      }
     };
 
-    configurePushSub = () => {
+  const configurePushSub = () => {};
 
-    };
+  const changeFile = e => {
+    const filee = e.target.files[0];
+    setFile(filee);
+    setimageSelected(URL.createObjectURL(filee));
+  };
 
-    render() {
-        let elementArray = [];
-        for (let key in this.state.newPostForm) {
-            elementArray.push({
-                id: key,
-                config: this.state.newPostForm[key]
-            });
-        }
-        return (
-            <div className="newPost">
-                <h1>Create New Post</h1>
-                <form className="newPost__form" encType="multipart/form-data">
-                    {elementArray.map(element => {
-                        return (
-                            <>
-                            <ReactSnackBar Icon={<i className="fas fa-alarm-clock"></i>} Show={this.state.showSnackbar}>
-                                Creating Your Post...
-                            </ReactSnackBar>
-                            <div key={element.id}>
-                                <Input elementType={element.config.elementType}
-                                      elementConfig={element.config.elementConfig}
-                                      value={element.config.value}
-                                      invalidN={!element.config.valid}
-                                      touched={element.config.touched}
-                                      label={element.config.label}
-                                      key={element.id}
-                                      changed={(event) => this.changeInput(event, element.id)}
-                                      errorMessage={element.config.errorMessage} />
-                            </div>
-                            </>
-                        )
-                    })}
-                            {this.state.imageSelected
-                             ?
-                             <div className="imageSelected">
-                                <img src={this.state.imageSelected} alt="sdknflsd" />
-                             </div>
-                             :
-                             null
-                            }
-                    <Button type="submit" click={(event) => this.createNewPost(event)} disabled={!this.state.formIsValid || this.state.buttonClicked}>Create Post</Button>
-                </form>
-            </div>
-        )
-    }
-}
-
-const mapStateToProps = state => {
-    return {
-        token: state.auth.token,
-        userId: state.auth.userId
-    };
+  return (
+    <div className="newPost">
+      <h1>Create New Post</h1>
+      <form className="newPost__form" encType="multipart/form-data">
+        <ReactSnackBar
+          Icon={<i className="fas fa-alarm-clock"></i>}
+          Show={showSnackbar}
+        >
+          Creating Your Post...
+        </ReactSnackBar>
+        <div>
+          <Input
+            element="input"
+            id="title"
+            placeholder="Title Of Your Post"
+            onInput={inputHandler}
+            type="text"
+            label="Post Title"
+            defaultValue=""
+            validators={[REQUIRE()]}
+          />
+          <Input
+            element="textarea"
+            id="body"
+            placeholder="Body Of Your Post"
+            onInput={inputHandler}
+            label="Post Body"
+            defaultValue=""
+            validators={[REQUIRE(), MAXLENGTH(500)]}
+          />
+          <input type="file" name="image" onChange={changeFile} />
+        </div>
+        {imageSelected ? (
+          <div className="imageSelected">
+            <img src={imageSelected} alt="sdknflsd" />
+          </div>
+        ) : null}
+        <Button
+          type="submit"
+          click={event => createNewPost(event)}
+          disabled={!initialState.formIsValid || !file || buttonClicked}
+        >
+          Create Post
+        </Button>
+      </form>
+      <ErrorModal
+        open={!!newPostError}
+        onClose={() => setnewPostError("")}
+        errorMessage={newPostError}
+      />
+    </div>
+  );
 };
 
-export default connect(mapStateToProps)(NewPost);
+export default NewPost;

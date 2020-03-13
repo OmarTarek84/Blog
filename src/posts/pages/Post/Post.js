@@ -1,165 +1,109 @@
-import React, {Component} from 'react';
-import Button from '../../../shared/UI/Button/Button';
-import axios from 'axios';
-import './Post.css';
-import Backdrop from '../../../shared/UI/Backdrop/Backdrop';
-import Modal from '../../../profile/components/EditProfileModal/EditProfileModal';
-import CSSTransition from 'react-transition-group/CSSTransition';
-import Input from '../../../shared/Form/Form/Form';
-import Spinner from '../../../shared/UI/Spinner/Spinner';
-import {connect} from 'react-redux';
-import SinglePost from '../../components/Post/Post.js';
-import ErrorComponent from '../../../hoc/Error';
-import Comments from '../../components/Comments/Comments';
-import OpenSocket from 'socket.io-client';
-import * as idb from 'idb';
+import React, { useEffect, useState, useCallback } from "react";
+import Button from "../../../shared/UI/Button/Button";
+import "./Post.css";
+import Backdrop from "../../../shared/UI/Backdrop/Backdrop";
+import Modal from "../../../profile/components/EditProfileModal/EditProfileModal";
+import CSSTransition from "react-transition-group/CSSTransition";
+import Input from "../../../shared/Form/Input/Input";
+import Spinner from "../../../shared/UI/Spinner/Spinner";
+import { useSelector, useDispatch } from "react-redux";
+import SinglePost from "../../components/Post/Post.js";
+import Comments from "../../components/Comments/Comments";
+import OpenSocket from "socket.io-client";
+import * as idb from "idb";
 import ReactSnackBar from "react-js-snackbar";
-import { ObjectID } from 'bson';
+import { ObjectID } from "bson";
+import { useHttpClient } from "../../../shared/http/http";
+import * as ActionTypes from "../../../store/actionTypes/ActionTypes";
+import { useForm } from "../../../shared/Form/FormState/FormState";
+import { REQUIRE, MAXLENGTH } from "../../../shared/Form/Validators/Validators";
+import ErrorModal from "../../../shared/UI/ErrorModal/ErrorModal";
+import axios from "../../../shared/http/axios";
 
-const dbPromise = idb.openDB('allPosts', 1, (db) => {
-    if (!db.objectStoreNames.contains('posts')) {
-        db.createObjectStore('posts', {keyPath: '_id'});
-    }
+const dbPromise = idb.openDB("allPosts", 1, db => {
+  if (!db.objectStoreNames.contains("posts")) {
+    db.createObjectStore("posts", { keyPath: "_id" });
+  }
 
-    if (!db.objectStoreNames.contains('users')) {
-        db.createObjectStore('users', {keyPath: '_id'});
-    }
+  if (!db.objectStoreNames.contains("users")) {
+    db.createObjectStore("users", { keyPath: "_id" });
+  }
 
-    if (!db.objectStoreNames.contains('sync-posts')) {
-        db.createObjectStore('sync-posts', {keyPath: 'body'});
-    }
+  if (!db.objectStoreNames.contains("sync-posts")) {
+    db.createObjectStore("sync-posts", { keyPath: "body" });
+  }
 });
 
 function deleteItemFromData(st, id) {
-    return dbPromise.then(db => {
-        var transaction = db.transaction(st, 'readwrite');
-        var store = transaction.objectStore(st);
-        store.delete(id);
-        return transaction.complete;
-    });
+  return dbPromise.then(db => {
+    var transaction = db.transaction(st, "readwrite");
+    var store = transaction.objectStore(st);
+    store.delete(id);
+    return transaction.complete;
+  });
 }
 
 function createData(st, data) {
-    return dbPromise.then(db => {
-        var transaction = db.transaction(st, 'readwrite');
-        var store = transaction.objectStore(st);
-        store.put(data);
-        return transaction.complete;
-    });
+  return dbPromise.then(db => {
+    var transaction = db.transaction(st, "readwrite");
+    var store = transaction.objectStore(st);
+    store.put(data);
+    return transaction.complete;
+  });
 }
 
-class Post extends Component {
-    signal = axios.CancelToken.source();
-    constructor(props) {
-        super(props);
-        this.inputRef = React.createRef();
-    }
+const Post = props => {
+  const [backdropShow, setbackdropShow] = useState(false);
+  const [showSnackbar, setshowSnackbar] = useState(false);
+  const [file, setFile] = useState(null);
+  const [imageSelected, setImageSelected] = useState(null);
+  const [deleteButtonClicked, setdeleteButtonClicked] = useState(false);
+  const [commentButtonDisabled, setcommentButtonDisabled] = useState(false);
+  const [buttonClicked, setbuttonClicked] = useState(false);
+  const [editPostButtonClicked, seteditPostButtonClicked] = useState(false);
+  const [postError, setPostError] = useState("");
 
-    state = {
-        commentEntered: '',
-        backdropShow: false,
-        modalShow: true,
-        showSnackbar: false,
-        editPostForm: {
-            title: {
-                elementType: 'input',
-                elementConfig: {
-                    placeholder: 'title of your post',
-                    type: 'text',
-                    name: 'title'
-                },
-                validationRules: {
-                    required: true,
-                    maxLength: true
-                },
-                valid: false,
-                touched: false,
-                value: '',
-                label: 'Title',
-                errorMessage: 'Characters should be between 1 and 30'
-            },
-            body: {
-                elementType: 'textarea',
-                elementConfig: {
-                    placeholder: 'Body of your post',
-                    type: 'text',
-                    name: 'body'
-                },
-                validationRules: {
-                    required: true,
-                },
-                valid: false,
-                touched: false,
-                value: '',
-                label: 'Body',
-                errorMessage: 'This Field Is Required'
-            },
-            postPhoto: {
-                elementType: 'input',
-                elementConfig: {
-                    type: 'file',
-                    name: 'image'
-                },
-                validationRules: {
-                    
-                },
-                valid: true,
-                touched: false,
-                value: '',
-                label: 'Image Of Your Post',
-                errorMessage: 'This Field Is Required'
-            },
-        },
-        formIsValid: false,
-        post: null,
-        imageSelected: null,
-        file: null,
-        deleteButtonClicked: false,
-        buttonSelected: false,
-        commentButtonDisabled: true,
-        comments: [],
-        numberOfComments: 0,
-        likes: 0,
-        buttonClicked: false,
-        editPostButtonClicked: false
-    }
+  const dispatch = useDispatch();
+  const singlePostFromStore = useSelector(state => state.posts.singlePost);
 
-    componentDidMount() {
-        const socket = OpenSocket('http://localhost:8080');
-        socket.on('newcomment', data => {
-            this.setState(prevState => {
-                return {
-                    comments: prevState.comments.concat(data.comment)
-                };
-            });
-        });
-        socket.on('likePost', data => {
-            const postState = {...this.state.post};
-            postState.likes.push(data.like);
-            this.setState(prevState => {
-                return {
-                    likes: prevState.likes + 1,
-                    post: postState
-                };
-            });
-        })
+  const changeFile = e => {
+    const filee = e.target.files[0];
+    setFile(filee);
+    setImageSelected(URL.createObjectURL(filee));
+  };
 
-        socket.on('unLikePost', data => {
-            const likesFiltered = this.state.post.likes.filter(p => {
-                return p._id !== this.props.userId;
-            })
-            this.setState(prevState => {
-                return {
-                    likes: prevState.likes - 1,
-                    post: {
-                        ...prevState.post,
-                        likes: likesFiltered
-                    }
-                };
-            });
-        })
-        const requestBody = {
-            query: `
+  const [initialState, inputHandler] = useForm(
+    {
+      title: {
+        value: "",
+        isValid: false
+      },
+      body: {
+        value: "",
+        isValid: false
+      }
+    },
+    false
+  );
+
+  const [initialForm, handleInput] = useForm(
+    {
+      comment: {
+        value: "",
+        isValid: false
+      }
+    },
+    false
+  );
+
+  const posts = useSelector(state => state.posts.posts);
+  const token = useSelector(state => state.auth.token);
+  const userId = useSelector(state => state.auth.userId);
+  const { isLoading, sendRequest } = useHttpClient();
+
+  const fetchSinglePost = useCallback(async () => {
+    const requestBody = {
+      query: `
                 query SinglePost($postId: String!) {
                     singlePost(postId: $postId) {
                         _id
@@ -173,6 +117,16 @@ class Post extends Component {
                             email
                             photo
                         }
+                        comments {
+                            _id
+                            comment
+                            createdAt
+                            updatedAt
+                            user {
+                              _id
+                              name
+                            }
+                          }
                         likes {
                             _id
                             name
@@ -180,333 +134,348 @@ class Post extends Component {
                     }
                 }
             `,
-            variables: {
-                postId: this.props.match.params.id
+      variables: {
+        postId: props.match.params.id
+      }
+    };
+
+    try {
+      const response = await sendRequest("graphql", requestBody, {
+        headers: { "Content-Type": "application/json" }
+      });
+
+      const singlePost = response.data.data.singlePost;
+      console.log("single post", singlePost);
+      dispatch({
+        type: ActionTypes.SET_SINGLE_POST,
+        singlePost: singlePost
+      });
+      const input = document.querySelector(".likeInput");
+      singlePost.likes.forEach(p => {
+        if (p._id === userId) {
+          if (input) {
+            input.checked = true;
+          }
+        }
+      });
+    } catch (err) {
+      setPostError(err);
+    }
+  }, [props.match.params.id, sendRequest, userId]);
+
+  useEffect(() => {
+    if (!posts || posts.length <= 0) {
+      fetchSinglePost();
+    } else {
+      const singlepost = posts.find(p => p._id === props.match.params.id);
+      setTimeout(() => {
+        const input = document.querySelector(".likeInput");
+        singlepost.likes.forEach(p => {
+          if (p._id === userId) {
+            if (input) {
+              input.checked = true;
             }
-            };
-            axios.post('http://localhost:8080/graphql', requestBody, {
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                cancelToken: this.signal.token
-            }).then(result => {
-                if (!result) {
-                    return;
-                }
-                const singlePost = result.data.data.singlePost;
-                this.setState({post: singlePost, likes: singlePost.likes.length});
-                const input = document.querySelector('.likeInput');
-                singlePost.likes.forEach(p => {
-                    if (p._id === this.props.userId) {
-                        if (input) {
-                            input.checked = true;
-                        }
-                    }
-                });
-            });
-            const requestBody2 = {
-                query: `
-                    query Comments($postId: String!) {
-                        comments(postId: $postId) {
-                            _id
-                            comment
-                            createdAt
-                            user {
-                              name
-                            }
-                          }
-                    }
-                `,
-                variables: {
-                    postId: this.props.match.params.id
-                }
-            };
-    
-            return axios.post('http://localhost:8080/graphql', requestBody2, {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                cancelToken: this.signal.token
-            }).then(res => {
-                this.setState({comments: res.data.data.comments});
-            });
-        }
-
-    componentWillUnmount() {
-        this.signal.cancel('cancelled');
+          }
+        });
+      }, 1);
+      dispatch({
+        type: ActionTypes.SET_SINGLE_POST,
+        singlePost: singlepost
+      });
     }
+  }, [fetchSinglePost, userId, props.match.params.id]);
 
-    changeCommentInput = () => {
-        if (this.inputRef.current.value === '') {
-            this.setState({commentButtonDisabled: true});
-        } else {
-            this.setState({commentButtonDisabled: false});
+  useEffect(() => {
+    const socket = OpenSocket("http://localhost:8080");
+    socket.on("newcomment", data => {
+      console.log(data);
+      if (posts.length <= 0) {
+        const updatedPost = {
+          ...singlePostFromStore,
+          comments: [data.comment, ...singlePostFromStore.comments]
+        };
+        dispatch({
+          type: ActionTypes.SET_SINGLE_POST,
+          singlePost: updatedPost
+        });
+      } else {
+        dispatch({
+          type: ActionTypes.INSERT_COMMENT,
+          id: singlePostFromStore._id,
+          comment: data.comment
+        });
+      }
+    });
+    socket.on("likePost", data => {
+      console.log('data from socket', data);
+      dispatch({
+        type: ActionTypes.LIKE_POSTS,
+        id: singlePostFromStore._id,
+        likeObj: data.like
+      });
+      const input = document.querySelector(".likeInput");
+      if (data.like._id === userId) {
+        console.log('el mafrood')
+        if (input) {
+          input.checked = true;
         }
-    }
-
-    openBackdrop = () => {
-        this.setState({backdropShow: true});
-        const editPostForm = {...this.state.editPostForm};
-        
-        const title = {...editPostForm['title']};
-        title.value = this.state.post.title;
-        title.valid = true;
-        editPostForm['title'] = title;
-
-        const body = {...editPostForm['body']};
-        body.value = this.state.post.body;
-        body.valid = true;
-        editPostForm['body'] = body;
-
-        this.setState({editPostForm: editPostForm, imageSelected: this.state.post.photo, formIsValid: true});
-    }
-
-    closeBackdrop = () => {
-        this.setState({backdropShow: false });
-    }
-
-    changeInput = (event, inputType) => {
-        const editPostForm = {...this.state.editPostForm};
-        const stateElement = editPostForm[inputType];
-        stateElement.value = event.target.value;
-        if (inputType === 'postPhoto') {
-            const file = event.target.files[0];
-            this.setState({file: file, imageSelected: URL.createObjectURL(file)});
+      }
+    });
+    socket.on("unLikePost", data => {
+      console.log('data from socket', data);
+      dispatch({
+        type: ActionTypes.UNLIKE_POSTS,
+        id: singlePostFromStore._id,
+        likeObj: data.like
+      });
+      const input = document.querySelector(".likeInput");
+      if (data.like._id === userId) {
+        if (input) {
+          input.checked = false;
         }
-        stateElement.touched = true;
-        stateElement.valid = this.checkValidity(stateElement.validationRules, stateElement.value);
-        editPostForm[inputType] = stateElement;
+      }
+    });
+    return () => {
+      socket.close();
+    };
+  }, [singlePostFromStore]);
 
-        let formIsValid = true;
-        for (let key in editPostForm) {
-            formIsValid = editPostForm[key].valid && formIsValid;
+  //   useEffect(() => {
+  //     ();
+  //   }, []);
+
+  const openBackdrop = () => {
+    setbackdropShow(true);
+  };
+
+  const closeBackdrop = () => {
+    setbackdropShow(false);
+  };
+
+  const editPost = async e => {
+    e.preventDefault();
+    setbackdropShow(false);
+    seteditPostButtonClicked(true);
+    const formData = new FormData();
+    formData.append("image", file);
+    try {
+      const editRes = await sendRequest("insertupdatePostImage", formData, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token
         }
-
-        this.setState({editPostForm: editPostForm, formIsValid: formIsValid});
-    }
-
-    checkValidity = (rules, value) => {
-        let isValid = true;
-        if (rules.required) {
-            isValid = value.trim() !== '' && isValid;
-        }
-
-        if (rules.emailValid) {
-            var re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-            isValid = re.test(value) && isValid;
-        }
-
-        if (rules.maxLength) {
-            isValid = value.length <= 30 && isValid;
-        }
-
-        return isValid;
-
-    }
-
-    editPost = (e) => {
-        e.preventDefault();
-        this.setState(prevState => {
-            return {
-                editPostForm: {
-                    ...prevState.editPostForm,
-                    postPhoto: {
-                        ...prevState.editPostForm.postPhoto,
-                        value: ''
+      });
+      const filepath = editRes.data.filePath;
+      let path;
+      if (filepath === "notFound") {
+        path = singlePostFromStore.photo;
+      } else {
+        path = filepath;
+      }
+      const editedPost = {
+        ...singlePostFromStore,
+        title: initialState.inputs.title.value,
+        body: initialState.inputs.body.value,
+        photo: imageSelected || singlePostFromStore.photo
+      };
+      dispatch({
+        type: ActionTypes.EDIT_POST,
+        id: singlePostFromStore._id,
+        editedPost: editedPost
+      });
+      console.log(editedPost);
+      dispatch({
+        type: ActionTypes.SET_SINGLE_POST,
+        singlePost: editedPost
+      });
+      seteditPostButtonClicked(false);
+      const requestBody22 = {
+        query: `
+                mutation UpdatePost($id: String!, $title: String!, $body: String!, $photo: String!) {
+                    updatePost(updatePostInput: {id: $id, title: $title, body: $body, photo: $photo}) {
+                      _id
+                      title
+                      body
+                      photo
+                      createdAt
                     }
                 }
-            }
-        })
-        this.setState({buttonSelected: true, backdropShow: false, editPostButtonClicked: true});
-        const formData = new FormData();
-        formData.append('image', this.state.file);
-        return axios.put('/insertupdatePostImage', formData, {
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + this.props.token
-            },
-            cancelToken: this.signal.token
-        }).then(result => {
-            const filepath = result.data.filePath;
-            let path;
-            if (filepath === 'notFound') {
-                path = this.state.post.photo;
-            } else {
-                path = filepath;
-            }
-            const requestBody = {
-                query: `
-                    mutation UpdatePost($id: String!, $title: String!, $body: String!, $photo: String!) {
-                        updatePost(updatePostInput: {id: $id, title: $title, body: $body, photo: $photo}) {
-                            _id
+            `,
+        variables: {
+          id: singlePostFromStore._id,
+          title: initialState.inputs.title.value,
+          body: initialState.inputs.body.value,
+          photo: path
+        }
+      };
+
+      await axios.post("graphql", requestBody22, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token
+        }
+      });
+    } catch (err) {
+      setPostError(err);
+      seteditPostButtonClicked(false);
+    }
+  };
+
+  const deletePost = async () => {
+    deleteItemFromData("posts", singlePostFromStore._id);
+    setdeleteButtonClicked(true);
+    try {
+      const requestBody = {
+        query: `
+                  mutation DeletePost($postId: String!) {
+                      deletePost(postId: $postId) {
+                          _id
+                          posts {
                             title
                             body
                             photo
-                            user {
-                            _id
-                            name
-                            }
+                          }
                         }
-                    }  
-                `,
-                variables: {
-                    id: this.state.post._id,
-                    title: this.state.editPostForm.title.value,
-                    body: this.state.editPostForm.body.value,
-                    photo: path
-                }
-            };
-
-            return axios.post('http://localhost:8080/graphql', requestBody, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + this.props.token
-                },
-                cancelToken: this.signal.token
-            }).then(res => {
-                const updatedPost = res.data.data.updatePost;
-                const post = {...this.state.post};
-                post.title = updatedPost.title;
-                post.body = updatedPost.body;
-                post.photo = path;
-                this.setState({post: post, buttonSelected: false, editPostButtonClicked: false});
-            });
-        })
-        .catch(err => {
-            console.log(err);
-        })
-    }
-
-    deletePost = () => {
-        deleteItemFromData('posts', this.state.post._id)
-        this.setState({deleteButtonClicked: true});
-        const requestBody = {
-            query: `
-                mutation DeletePost($postId: String!) {
-                    deletePost(postId: $postId) {
-                        _id
-                        posts {
-                          title
-                          body
-                          photo
-                        }
-                      }
-                }
-            `,
-            variables: {
-                postId: this.state.post._id
-            }
-        };
-
-        return axios.post('http://localhost:8080/graphql', requestBody, {
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + this.props.token
-            },
-            cancelToken: this.signal.token
-        }).then(res => {
-            this.setState({deleteButtonClicked: false});
-            this.props.history.push('/posts');
-        });
-    };
-
-    // insert comment while offline
-
-    sendCommentInsertedToDB = (e) => {
-        e.preventDefault();
-        this.setState({commentButtonDisabled: true, showSnackbar: true});
-        const requestBody = {
-            query: `
-                mutation InsertComment($postId: String!, $comment: String!) {
-                    insertComment(postId: $postId, comment: $comment) {
-                        _id
-                        comment
-                        createdAt
-                        user {
-                          name
-                        }
-                      }
-                }
-            `,
-            variables: {
-                postId: this.state.post._id,
-                comment: this.inputRef.current.value
-            }
-        };
-
-        return axios.post('http://localhost:8080/graphql', requestBody, {
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + this.props.token
-            },
-            cancelToken: this.signal.token
-        }).then(res => {
-            const insertedComment = res.data.data.insertComment;
-            navigator.serviceWorker.ready.then(sw => {
-                sw.active.postMessage(JSON.stringify({
-                    postId: this.state.post._id,
-                    comment: insertedComment.comment,
-                    userInsertedComment: insertedComment.user.name
-                }));
-            })
-            this.inputRef.current.value = '';
-            this.setState(prevState => {
-                return {
-                    commentButtonDisabled: false,
-                    showSnackbar: false
-                    // comments: prevState.comments.concat(res.data.data.insertComment),
-                }
-            })
-        });
-    }
-
-    insertComment = (e) => {
-        if (navigator.onLine) {
-            this.sendCommentInsertedToDB(e);
-        } else {
-            e.preventDefault();
-            this.setState({commentButtonDisabled: true, showSnackbar: true});
-            if ('serviceWorker' in navigator && 'SyncManager' in window) {
-                navigator.serviceWorker.ready.then(sw => {
-                    const comment = {
-                        _id: new ObjectID().toHexString(),
-                        postId: this.state.post._id,
-                        comment: this.inputRef.current.value,
-                        userId: this.props.userId,
-                        token: this.props.token
-                    };
-                    createData('sync-comments', comment).then(() => {
-                        return sw.sync.register('sync-new-comments');
-                    })
-                    .then(() => {
-                        this.setState({showSnackbar: false})
-                    })
-                    .then(() => {
-                        this.setState({commentButtonDisabled: false})
-                    })
-                    .catch(err => {
-                        console.log(err);
-                    })
-                });
-            } else {
-                this.sendCommentInsertedToDB(e);
-            }
+                  }
+              `,
+        variables: {
+          postId: singlePostFromStore._id
         }
-    }
+      };
 
-    goToProfile = (id) => {
-        this.props.history.push({
-            pathname: '/userprofile/' + id,
-        })
+      await axios.post("graphql", requestBody, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token
+        }
+      });
+      setdeleteButtonClicked(false);
+      dispatch({
+        type: ActionTypes.DELETE_POST,
+        id: singlePostFromStore._id
+      });
+      props.history.push("/posts");
+    } catch (err) {
+      setPostError(err);
     }
+  };
 
-    like = (event) => {
-        const isLiked = event.target.checked;
-        this.setState({buttonClicked: true});
-        let requestBody;
-        if (isLiked) {
-            requestBody = {
-                query: `
+  // insert comment while offline
+
+  const sendCommentInsertedToDB = async e => {
+    e.preventDefault();
+    setcommentButtonDisabled(true);
+    try {
+      const requestBody = {
+        query: `
+                  mutation InsertComment($postId: String!, $comment: String!) {
+                      insertComment(postId: $postId, comment: $comment) {
+                          _id
+                          comment
+                          createdAt
+                          user {
+                            name
+                          }
+                        }
+                  }
+              `,
+        variables: {
+          postId: singlePostFromStore._id,
+          comment: initialForm.inputs.comment.value
+        }
+      };
+
+      const commentRes = await axios.post("graphql", requestBody, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token
+        }
+      });
+
+      const commentResponse = commentRes.data.data.insertComment;
+
+      // if (posts.length <= 0) {
+      //   const updatedPost = {
+      //     ...singlePostFromStore,
+      //     comments: [commentResponse, ...singlePostFromStore.comments]
+      //   };
+      //   dispatch({
+      //     type: ActionTypes.SET_SINGLE_POST,
+      //     singlePost: updatedPost
+      //   });
+      // } else {
+      //   dispatch({
+      //     type: ActionTypes.INSERT_COMMENT,
+      //     id: singlePostFromStore._id,
+      //     comment: commentResponse
+      //   });
+      // }
+
+      setcommentButtonDisabled(false);
+
+      navigator.serviceWorker.ready.then(sw => {
+        sw.active.postMessage(
+          JSON.stringify({
+            postId: singlePostFromStore._id,
+            comment: commentResponse.comment,
+            userInsertedComment: commentResponse.user.name
+          })
+        );
+      });
+    } catch (err) {
+      setPostError(err);
+    }
+  };
+
+  const insertComment = e => {
+    if (navigator.onLine) {
+      sendCommentInsertedToDB(e);
+    } else {
+      e.preventDefault();
+      setcommentButtonDisabled(true);
+      setshowSnackbar(true);
+      if ("serviceWorker" in navigator && "SyncManager" in window) {
+        navigator.serviceWorker.ready.then(sw => {
+          const comment = {
+            _id: new ObjectID().toHexString(),
+            postId: singlePostFromStore._id,
+            comment: this.inputRef.current.value,
+            userId: userId,
+            token: token
+          };
+          createData("sync-comments", comment)
+            .then(() => {
+              return sw.sync.register("sync-new-comments");
+            })
+            .then(() => {
+              setshowSnackbar(false);
+            })
+            .then(() => {
+              setcommentButtonDisabled(false);
+            })
+            .catch(err => {
+              console.log(err);
+            });
+        });
+      } else {
+        this.sendCommentInsertedToDB(e);
+      }
+    }
+  };
+
+  const goToProfile = id => {
+    props.history.push({
+      pathname: "/userprofile/" + id
+    });
+  };
+
+  const like = async event => {
+    const isLiked = event.target.checked;
+    setbuttonClicked(true);
+    let requestBody;
+    if (isLiked) {
+      requestBody = {
+        query: `
                     mutation LikePost($postId: String!) {
                         likePost(postId: $postId) {
                             _id
@@ -516,13 +485,13 @@ class Post extends Component {
                         }
                     }
                 `,
-                variables: {
-                    postId: this.props.match.params.id
-                }
-            }
-        } else {
-            requestBody = {
-                query: `
+        variables: {
+          postId: props.match.params.id
+        }
+      };
+    } else {
+      requestBody = {
+        query: `
                     mutation UnlikePost($postId: String!) {
                         unlikePost(postId: $postId) {
                             _id
@@ -532,143 +501,167 @@ class Post extends Component {
                         }
                     }
                 `,
-                variables: {
-                    postId: this.props.match.params.id
-                }
-            }
+        variables: {
+          postId: props.match.params.id
         }
-
-        return axios.post('http://localhost:8080/graphql', requestBody, {
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + this.props.token
-            },
-            cancelToken: this.signal.token
-        }).then(result => {
-            if (result.data.data.likePost) {
-                this.setState(prevState => {
-                    return {
-                        // likes: prevState.likes + 1,
-                        buttonClicked: false
-                    }
-                })
-            } else {
-                this.setState(prevState => {
-                    return {
-                        // likes: prevState.likes - 1,
-                        buttonClicked: false
-                    }
-                })
-            }
-        });
+      };
     }
 
-    render() {
-        let elementArray = [];
-        for (let key in this.state.editPostForm) {
-            elementArray.push({
-                id: key,
-                config: this.state.editPostForm[key]
-            });
-        }
-        const {post, comments} = this.state
-        if (post === null || comments === null) {
-            return <Spinner />
-        }
-        return (
-            <>
-                <ReactSnackBar Icon={<i className="fas fa-alarm-clock"></i>} Show={this.state.showSnackbar}>
-                    Creating Your Comment...
-                </ReactSnackBar>
-                <SinglePost openBackdrop={this.openBackdrop}
-                            title={this.state.post.title}
-                            body={this.state.post.body}
-                            image={this.state.post.photo}
-                            date={this.state.post.createdAt}
-                            postCreator={this.state.post.user.name}
-                            onGoToProfile={this.goToProfile}
-                            deletePost={this.deletePost}
-                            disabledd={this.state.deleteButtonClicked}
-                            userId={this.props.userId}
-                            postUserId={this.state.post.user._id}
-                            like={this.like}
-                            numberOfLikes={this.state.likes}
-                            buttonClicked={this.state.buttonClicked}
-                            token={this.props.token}
-                            userPostId={this.state.post.user._id}
-                            disabled={this.state.editPostButtonClicked} />
+    await axios.post("graphql", requestBody, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token
+      }
+    });
+    setbuttonClicked(false);
 
-                {this.props.token
-                 ?
-                    this.state.post.user._id !== this.props.userId
-                    ?
-                    <div className="post__comments">
-                        <h2>Leave A Comment</h2>
-                        <form className="post__comments__form">
-                            <input ref={this.inputRef} name="comment" onChange={this.changeCommentInput} placeholder="Leave A comment Here" />
-                            <Button type="submit" disabled={this.state.commentButtonDisabled} click={(e) => this.insertComment(e)}>POST</Button>
-                        </form>
-                    </div>
-                    :
-                    null
-                 :
-                 null}
-                 <Comments comments={this.state.comments}
-                           numberOfComments={this.state.comments.length} />
-                <Backdrop show={this.state.backdropShow} />
-                <CSSTransition mountOnEnter
-                               unmountOnExit
-                               in={this.state.backdropShow}
-                               timeout={{
-                                   enter: 1000,
-                                   exit: 1000
-                               }}
-                               classNames={{
-                                   enter: '',
-                                   enterActive: 'ModalOpen',
-                                   exit: '',
-                                   exitActive: 'ModalClose'
-                               }}>
-                    <Modal viewModal={this.state.backdropShow}>
-                        <form className="editPost__form" encType="multipart/form-data">
-                            <h1>Edit Your Post</h1>
-                            <div className="editPost__icon" onClick={this.closeBackdrop}>
-                                <i className="fas fa-times-circle"></i>
-                            </div>
-                        {elementArray.map(element => {
-                            return (
-                                <div key={element.id}>
-                                    <Input elementType={element.config.elementType}
-                                            elementConfig={element.config.elementConfig}
-                                            value={element.config.value}
-                                            invalidN={!element.config.valid}
-                                            touched={element.config.touched}
-                                            label={element.config.label}
-                                            key={element.id}
-                                            changed={(event) => this.changeInput(event, element.id)}
-                                            errorMessage={element.config.errorMessage} />
-                                </div>
-                            )
-                        })}
-                        <Button type="submit" disabled={!this.state.formIsValid || this.state.buttonSelected} click={this.editPost}>Update Post</Button>
-                        {this.state.imageSelected
-                         ?
-                         <img src={this.state.imageSelected} name="image" alt='postImage' className="imageSelected" />
-                        :
-                        null}
-                        </form>
-                    </Modal>
-                </CSSTransition>
-            </>
-        )
-    }
-}
+  };
 
-const mapStateToProps = state => {
-    return {
-        token: state.auth.token,
-        userId: state.auth.userId
-    };
+  let thePost;
+  if (isLoading) {
+    thePost = <Spinner />;
+  } else if (!isLoading && singlePostFromStore) {
+    thePost = (
+      <>
+        <SinglePost
+          openBackdrop={openBackdrop}
+          title={singlePostFromStore.title}
+          body={singlePostFromStore.body}
+          image={singlePostFromStore.photo}
+          date={singlePostFromStore.createdAt}
+          postCreator={singlePostFromStore.user.name}
+          onGoToProfile={goToProfile}
+          deletePost={deletePost}
+          disabledd={deleteButtonClicked}
+          userId={userId}
+          postUserId={singlePostFromStore.user._id}
+          like={like}
+          numberOfLikes={singlePostFromStore.likes.length}
+          buttonClicked={buttonClicked}
+          token={token}
+          userPostId={singlePostFromStore.user._id}
+          disabled={editPostButtonClicked}
+        />
+
+        {token ? (
+          singlePostFromStore.user._id !== userId ? (
+            <div className="post__comments">
+              <h2>Leave A Comment</h2>
+              <form className="post__comments__form">
+                <Input
+                  element="input"
+                  id="comment"
+                  placeholder="comment..."
+                  onInput={handleInput}
+                  type="text"
+                  label="Enter Your Comment"
+                  validators={[]}
+                />
+                <Button
+                  type="submit"
+                  disabled={!initialForm.formIsValid || commentButtonDisabled}
+                  click={e => insertComment(e)}
+                >
+                  POST
+                </Button>
+              </form>
+            </div>
+          ) : null
+        ) : null}
+        <Comments
+          comments={singlePostFromStore.comments.sort(
+            (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+          )}
+          numberOfComments={singlePostFromStore.comments.length}
+        />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <ReactSnackBar
+        Icon={<i className="fas fa-alarm-clock"></i>}
+        Show={showSnackbar}
+      >
+        Creating Your Comment...
+      </ReactSnackBar>
+      {thePost}
+      <Backdrop show={backdropShow} />
+      <CSSTransition
+        mountOnEnter
+        unmountOnExit
+        in={backdropShow}
+        timeout={{
+          enter: 1000,
+          exit: 1000
+        }}
+        classNames={{
+          enter: "",
+          enterActive: "ModalOpen",
+          exit: "",
+          exitActive: "ModalClose"
+        }}
+      >
+        <Modal viewModal={backdropShow}>
+          <form className="editPost__form" encType="multipart/form-data">
+            <h1>Edit Your Post</h1>
+            <div className="editPost__icon" onClick={closeBackdrop}>
+              <i className="fas fa-times-circle"></i>
+            </div>
+            <Input
+              element="input"
+              id="title"
+              placeholder="Title Of Your Post"
+              onInput={inputHandler}
+              type="text"
+              label="Post Title"
+              initialValue={singlePostFromStore ? singlePostFromStore.title : ""}
+              isValid={true}
+              validators={[REQUIRE()]}
+            />
+            <Input
+              element="textarea"
+              id="body"
+              placeholder="Body Of Your Post"
+              onInput={inputHandler}
+              isValid={true}
+              label="Post Body"
+              initialValue={singlePostFromStore ? singlePostFromStore.body : ""}
+              validators={[REQUIRE(), MAXLENGTH(500)]}
+            />
+            <input type="file" name="image" onChange={changeFile} />
+            <Button
+              type="submit"
+              disabled={!initialState.formIsValid}
+              click={editPost}
+            >
+              Update Post
+            </Button>
+            {singlePostFromStore && singlePostFromStore.photo ? (
+              <img
+                src={imageSelected || singlePostFromStore.photo}
+                name="image"
+                alt="postImage"
+                className="imageSelected"
+              />
+            ) : null}
+          </form>
+        </Modal>
+      </CSSTransition>
+      <ErrorModal
+        open={!!postError}
+        onClose={() => setPostError("")}
+        errorMessage={
+          postError.response &&
+          postError.response.data &&
+          postError.response.data.errors[0]
+            ? postError.response.data.errors[0].message
+            : "Failed to update post or session has timed out"
+        }
+      />
+    </>
+  );
 };
 
-export default connect(mapStateToProps)(Post);
+export default Post;

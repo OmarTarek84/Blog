@@ -73,6 +73,16 @@ const HomePage = props => {
                                   createdAt
                                   photo
                               }
+                              comments {
+                                _id
+                                comment
+                                createdAt
+                                updatedAt
+                                user {
+                                  _id
+                                  name
+                                }
+                              }
                               likes {
                                 _id
                                 name

@@ -35,12 +35,13 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-    var url = 'https://blog-social-network.herokuapp.com';
+    // var url = 'https://blog-social-network.herokuapp.com';
+    var url = 'http://localhost:3000';
     if (event.request.url.indexOf(url) >= -1) {
         event.respondWith(
             fetch(event.request).then(response => {
                 var clonedRes = response.clone();
-                if (clonedRes.url === 'https://blog-social-network.herokuapp.com/graphql') {
+                if (clonedRes.url === 'http://localhost:3000/graphql') {
                     clonedRes.json().then(data => {
                         const posts = data.data.posts;
                         const users = data.data.users;
@@ -229,7 +230,7 @@ self.addEventListener('notificationclick', event => {
     var notification = event.notification;
     var action = event.action;
     if (action === 'confirm') {
-        var url = 'https://blog-social-network.herokuapp.com/post';
+        var url = 'http://localhost:3000/post';
         if (notification.data.url.indexOf(url) !== -1) {
             event.waitUntil(
                 clients.matchAll().then(cli => {
