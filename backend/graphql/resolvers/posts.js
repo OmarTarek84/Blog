@@ -142,6 +142,8 @@ module.exports = {
             if (!post) {
                 throw new Error('Can not fetch your post or post has been deleted');
             }
+            console.log(req.userId);
+            console.log(req.name);
             const newComment = new Comment({
                 comment: comment,
                 post: post._id,
@@ -154,9 +156,11 @@ module.exports = {
                     comment: {
                         _id: result._id,
                         createdAt: new Date(result.createdAt).toLocaleDateString("en-US", options),
+                        updatedAt: new Date(result.updatedAt).toLocaleDateString("en-US", options),
                         comment: result.comment,
-                        user: {name: req.name}
-                    }
+                        user: {_id: req.userId, name: req.name},
+                    },
+                    postId: post._id
                 });
                 post.comments.push(result);
                 return post.save().then(res => {
@@ -201,8 +205,10 @@ module.exports = {
             io.getIO().emit('likePost', {
                 like: {
                     _id: req.userId,
-                    name: req.name
-                }
+                    name: req.name,
+                    postId: postId
+                },
+                postId: postId
             });
             post.likes.push(req.userId);
             return post.save().then(res => {
@@ -224,8 +230,10 @@ module.exports = {
             io.getIO().emit('unLikePost', {
                 like: {
                     _id: req.userId,
-                    name: req.name
-                }
+                    name: req.name,
+                    postId: postId
+                },
+                postId: postId
             });
             post.likes.pull(req.userId);
             return post.save().then(res => {

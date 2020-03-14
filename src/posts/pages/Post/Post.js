@@ -9,7 +9,6 @@ import Spinner from "../../../shared/UI/Spinner/Spinner";
 import { useSelector, useDispatch } from "react-redux";
 import SinglePost from "../../components/Post/Post.js";
 import Comments from "../../components/Comments/Comments";
-import OpenSocket from "socket.io-client";
 import * as idb from "idb";
 import ReactSnackBar from "react-js-snackbar";
 import { ObjectID } from "bson";
@@ -184,65 +183,6 @@ const Post = props => {
       });
     }
   }, [fetchSinglePost, userId, props.match.params.id]);
-
-  useEffect(() => {
-    const socket = OpenSocket("http://localhost:8080");
-    socket.on("newcomment", data => {
-      console.log(data);
-      if (posts.length <= 0) {
-        const updatedPost = {
-          ...singlePostFromStore,
-          comments: [data.comment, ...singlePostFromStore.comments]
-        };
-        dispatch({
-          type: ActionTypes.SET_SINGLE_POST,
-          singlePost: updatedPost
-        });
-      } else {
-        dispatch({
-          type: ActionTypes.INSERT_COMMENT,
-          id: singlePostFromStore._id,
-          comment: data.comment
-        });
-      }
-    });
-    socket.on("likePost", data => {
-      console.log('data from socket', data);
-      dispatch({
-        type: ActionTypes.LIKE_POSTS,
-        id: singlePostFromStore._id,
-        likeObj: data.like
-      });
-      const input = document.querySelector(".likeInput");
-      if (data.like._id === userId) {
-        console.log('el mafrood')
-        if (input) {
-          input.checked = true;
-        }
-      }
-    });
-    socket.on("unLikePost", data => {
-      console.log('data from socket', data);
-      dispatch({
-        type: ActionTypes.UNLIKE_POSTS,
-        id: singlePostFromStore._id,
-        likeObj: data.like
-      });
-      const input = document.querySelector(".likeInput");
-      if (data.like._id === userId) {
-        if (input) {
-          input.checked = false;
-        }
-      }
-    });
-    return () => {
-      socket.close();
-    };
-  }, [singlePostFromStore]);
-
-  //   useEffect(() => {
-  //     ();
-  //   }, []);
 
   const openBackdrop = () => {
     setbackdropShow(true);
@@ -628,7 +568,7 @@ const Post = props => {
               isValid={true}
               label="Post Body"
               initialValue={singlePostFromStore ? singlePostFromStore.body : ""}
-              validators={[REQUIRE(), MAXLENGTH(500)]}
+              validators={[REQUIRE(), MAXLENGTH(1500)]}
             />
             <input type="file" name="image" onChange={changeFile} />
             <Button

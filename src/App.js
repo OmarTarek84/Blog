@@ -1,5 +1,5 @@
 import React, { Suspense, useState, useEffect, useCallback } from "react";
-import { Switch, Route, withRouter, Redirect } from "react-router-dom";
+import { Switch, Route, withRouter } from "react-router-dom";
 import "./App.css";
 import Layout from "./shared/Layout/Layout/Layout";
 import HomePage from "./home/pages/Home/Home";
@@ -8,6 +8,8 @@ import { useSelector, useDispatch } from "react-redux";
 import * as ActionCreators from "./store/actionCreators/User";
 import LogoutPage from "./auth/page/Logout/Logout";
 import Conditional from "react-simple-conditional";
+import OpenSocket from "socket.io-client";
+import * as ActionTypes from "./store/actionTypes/ActionTypes";
 
 const Auth = React.lazy(() => {
   return import("./auth/page/Auth/Auth");
@@ -34,12 +36,13 @@ const Posts = React.lazy(() => {
 });
 
 const App = props => {
-
   const [installButton, setInstallButton] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const singlePostFromStore = useSelector(state => state.posts.singlePost);
   const token = useSelector(state => state.auth.token);
-  let logoutTimer;
+  const userId = useSelector(state => state.auth.userId);
   const dispatch = useDispatch();
+  let logoutTimer;
 
   useEffect(() => {
     window.addEventListener("beforeinstallprompt", e => {
@@ -62,31 +65,108 @@ const App = props => {
     dispatch(ActionCreators.logout());
   }, [dispatch]);
 
-  const login = useCallback((token, userId, firstName, expDate) => {
-    dispatch(ActionCreators.signinSucess(token, userId, expDate));
-  }, [dispatch]);
+  const login = useCallback(
+    (token, userId, firstName, expDate) => {
+      dispatch(ActionCreators.signinSucess(token, userId, expDate));
+    },
+    [dispatch]
+  );
 
   useEffect(() => {
-    const expirationDate = localStorage.getItem('expDate');
-    const tokenStorage = localStorage.getItem('token');
-    const userId = localStorage.getItem('userId');
+    const socket = OpenSocket("http://localhost:8080");
+    socket.on("newcomment", data => {
+      console.log("data from socket", data);
+      const currentRoute = props.location.pathname.split("/");
+      console.log("curretn", currentRoute);
+      if (currentRoute[2] && data.postId === currentRoute[2]) {
+        const updatedPost = {
+          ...singlePostFromStore,
+          comments: [data.comment, ...singlePostFromStore.comments]
+        };
+        dispatch({
+          type: ActionTypes.SET_SINGLE_POST,
+          singlePost: updatedPost
+        });
+      } else {
+        dispatch({
+          type: ActionTypes.INSERT_COMMENT,
+          id: data.postId,
+          comment: data.comment
+        });
+      }
+    });
+    socket.on("likePost", data => {
+      console.log("data from socket", data);
+      const currentRoute = props.location.pathname.split("/");
+      console.log(currentRoute[2]);
+      if (currentRoute[2] && data.like.postId === currentRoute[2]) {
+        dispatch({
+          type: ActionTypes.LIKE_POSTS,
+          id: singlePostFromStore._id,
+          likeObj: data.like
+        });
+        const input = document.querySelector(".likeInput");
+        if (data.like._id === userId) {
+          console.log("el mafrood");
+          if (input) {
+            input.checked = true;
+          }
+        }
+      } else {
+        dispatch({
+          type: ActionTypes.LIKE_POSTS,
+          id: data.postId,
+          likeObj: data.like
+        });
+      }
+    });
+    socket.on("unLikePost", data => {
+      console.log("data from socket", data);
+      const currentRoute = props.location.pathname.split("/");
+      console.log(currentRoute[2]);
+      if (currentRoute[2] && data.like.postId === currentRoute[2]) {
+        dispatch({
+          type: ActionTypes.UNLIKE_POSTS,
+          id: singlePostFromStore._id,
+          likeObj: data.like
+        });
+        const input = document.querySelector(".likeInput");
+        if (data.like._id === userId) {
+          if (input) {
+            input.checked = false;
+          }
+        }
+      } else {
+        dispatch({
+          type: ActionTypes.UNLIKE_POSTS,
+          id: data.postId,
+          likeObj: data.like
+        });
+      }
+    });
+    return () => {
+      socket.close();
+    };
+  }, [singlePostFromStore, props.location.pathname, userId, dispatch]);
+
+  useEffect(() => {
+    const expirationDate = localStorage.getItem("expDate");
+    const tokenStorage = localStorage.getItem("token");
+    const userId = localStorage.getItem("userId");
     if (tokenStorage && userId) {
-      const timeRemaining = new Date(expirationDate).getTime() - new Date().getTime();
+      const timeRemaining =
+        new Date(expirationDate).getTime() - new Date().getTime();
       logoutTimer = setTimeout(logout, timeRemaining);
     } else {
       clearTimeout(logoutTimer);
     }
-  }, [localStorage.getItem('token'), localStorage.getItem('expDate'), logout]);
+  }, [localStorage.getItem("token"), localStorage.getItem("expDate"), logout]);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    const storedExpDate = localStorage.getItem('expDate');
+    const storedToken = localStorage.getItem("token");
+    const storedExpDate = localStorage.getItem("expDate");
     const storedUserId = localStorage.getItem("userId");
-    if (
-      storedUserId &&
-      storedToken &&
-      new Date(storedExpDate) > new Date()
-    ) {
+    if (storedUserId && storedToken && new Date(storedExpDate) > new Date()) {
       login(storedToken, storedUserId, storedExpDate);
     }
   }, [login]);
@@ -127,6 +207,7 @@ const App = props => {
   };
   return (
     <Layout>
+      
       <Suspense fallback={<Spinner />}>
         <div
           style={{
@@ -167,9 +248,7 @@ const App = props => {
           ) : null}
           <Route path="/post/:id" render={props => <Post {...props} />} exact />
           <Route path="/posts" render={props => <Posts {...props} />} exact />
-          {token ? (
-            <Route path="/logout" component={LogoutPage} />
-          ) : null}
+          {token ? <Route path="/logout" component={LogoutPage} /> : null}
           <Route path="/" component={HomePage} exact />
         </Switch>
       </Suspense>

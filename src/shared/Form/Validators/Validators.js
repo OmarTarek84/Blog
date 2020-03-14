@@ -18,7 +18,7 @@ export const Validators = (validators, value) => {
   let errorMessages = [
     { text: "This Field Is Required", appear: false },
     { text: "This Field Is not number", appear: false },
-    { text: "This Field Must Have Maximum 500 characters", appear: false },
+    { text: "This Field Must Have Maximum 1500 characters", appear: false },
     { text: "Email Is Not Valid", appear: false },
     { text: "Passwords do not match", appear: false },
     { text: "Password should have at least 8 characters", appear: false }

@@ -43,17 +43,24 @@ const PostReducer = (state = initialState, action) => {
       };
     case ActionTypes.INSERT_COMMENT:
       const postss = [...state.posts];
-      const targetPostIndexxx = postss.findIndex(
-        post => post._id === action.id
-      );
-      postss[targetPostIndexxx].comments = [
-        action.comment,
-        ...postss[targetPostIndexxx].comments
-      ];
-      return {
-        ...state,
-        posts: postss
-      };
+      if (postss.length > 0) {
+        const targetPostIndexxx = postss.findIndex(
+          post => post._id === action.id
+        );
+        postss[targetPostIndexxx].comments = [
+          action.comment,
+          ...postss[targetPostIndexxx].comments
+        ];
+        return {
+          ...state,
+          posts: postss
+        };
+      } else {
+        return {
+          ...state,
+          posts: []
+        };
+      }
     case ActionTypes.SET_SINGLE_POST:
       return {
         ...state,
@@ -71,38 +78,36 @@ const PostReducer = (state = initialState, action) => {
       } else {
         const allposts = [...state.posts];
         const index = allposts.findIndex(p => p._id === action.id);
-        allposts[index].likes.concat(action.likeObj);
+        allposts[index].likes.push(action.likeObj);
+        console.log(allposts[index]);
         return {
           ...state,
           posts: allposts,
-          singlePost: {
-            ...state.singlePost,
-            likes: state.singlePost.likes.concat(action.likeObj)
-          }
         };
-      };
+      }
     case ActionTypes.UNLIKE_POSTS:
       if (state.posts.length <= 0) {
         return {
           ...state,
           singlePost: {
             ...state.singlePost,
-            likes: state.singlePost.likes.filter(p => p._id !== action.likeObj._id)
+            likes: state.singlePost.likes.filter(
+              p => p._id !== action.likeObj._id
+            )
           }
         };
       } else {
         const allposts = [...state.posts];
-        const index = allposts.findIndex(p => p._id === action.id);
-        allposts[index].likes.filter(p => p._id !== action.likeObj._id);
+        const postIndex = allposts.findIndex(p => p._id === action.id);
+        const likeIndex = allposts[postIndex].likes.findIndex(p => {
+          return p._id === action.likeObj._id;
+        });
+        allposts[postIndex].likes.splice(likeIndex, 1);
         return {
           ...state,
           posts: allposts,
-          singlePost: {
-            ...state.singlePost,
-            likes: state.singlePost.likes.filter(p => p._id !== action.likeObj._id)
-          }
         };
-      };
+      }
     default:
       return state;
   }

@@ -224,7 +224,7 @@ const NewPost = props => {
             onInput={inputHandler}
             label="Post Body"
             defaultValue=""
-            validators={[REQUIRE(), MAXLENGTH(500)]}
+            validators={[REQUIRE(), MAXLENGTH(1500)]}
           />
           <input type="file" name="image" onChange={changeFile} />
         </div>
