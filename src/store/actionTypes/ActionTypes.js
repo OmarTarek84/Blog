@@ -10,6 +10,7 @@ export const DELETE_POST = 'DELETE_POST';
 export const SET_SINGLE_POST = 'SET_SINGLE_POST';
 
 export const FETCH_USERS = 'FETCH_USERS';
+export const SET_SINGLE_USER = 'SET_SINGLE_USER';
 
 export const FETCH_COMMENTS = 'FETCH_COMMENTS';
 export const INSERT_COMMENT = 'INSERT_COMMENT';

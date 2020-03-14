@@ -1,118 +1,38 @@
-import React, {Component} from 'react';
-import Backdrop from '../../../shared/UI/Backdrop/Backdrop';
-import EditProfileModal from '../../components/EditProfileModal/EditProfileModal';
-import './UserProfile.css';
-import Button from '../../../shared/UI/Button/Button';
-import Input from '../../../shared/Form/Form/Form';
-import CSSTransition from 'react-transition-group/CSSTransition';
-import ProfilePage from '../../components/UserProfile/UserProfile';
-import axios from 'axios';
-import Spinner from '../../../shared/UI/Spinner/Spinner';
-import {connect} from 'react-redux';
-import ErrorComponent from '../../../hoc/Error';
+import React, { useState, useEffect, useCallback } from "react";
+import Backdrop from "../../../shared/UI/Backdrop/Backdrop";
+import EditProfileModal from "../../components/EditProfileModal/EditProfileModal";
+import "./UserProfile.css";
+import Button from "../../../shared/UI/Button/Button";
+import Input from "../../../shared/Form/Input/Input";
+import CSSTransition from "react-transition-group/CSSTransition";
+import ProfilePage from "../../components/UserProfile/UserProfile";
+import axios from "../../../shared/http/axios";
+import Spinner from "../../../shared/UI/Spinner/Spinner";
+import { useSelector, useDispatch } from "react-redux";
+import { useHttpClient } from "../../../shared/http/http";
+import * as ActionTypes from "../../../store/actionTypes/ActionTypes";
 
-class UserProf extends Component {
+const UserProf = props => {
+  const [viewBackdrop, setviewBackdrop] = useState(false);
+  const [viewModal, setviewModal] = useState(false);
+  const [file, setFile] = useState(false);
+  const [imageSelected, setImageSelected] = useState(null);
+  const [buttonClicked, setbuttonClicked] = useState(false);
+  const [followButtonClicked, setfollowButtonClicked] = useState(false);
+  const [followed, setfollowed] = useState(false);
+  const [userErr, setUserErr] = useState("");
 
-    signal = axios.CancelToken.source();
-    state = {
-        viewBackdrop: false,
-        viewModal: false,
-        imageSelected: null,
-        editprofileForm: {
-            name: {
-                elementType: 'input',
-                elementConfig: {
-                    placeholder: 'Type Your Name Here',
-                    type: 'text',
-                    name: 'name',
-                    label: 'Name'
-                },
-                value: '',
-                valid: false,
-                validationRules: {
-                    required: true
-                },
-                touched: false,
-                errorMessage: 'This Field is Required!'
-            },
-            email: {
-                elementType: 'input',
-                elementConfig: {
-                    placeholder: 'Type Your Email Here',
-                    type: 'email',
-                    name: 'email',
-                    label: 'Email',
-                    
-                },
-                value: '',
-                valid: false,
-                validationRules: {
-                    required: true,
-                    emailValid: true
-                },
-                touched: false,
-                errorMessage: 'Invalid Email'
-            },
-            password: {
-                elementType: 'input',
-                elementConfig: {
-                    placeholder: 'Type Your Password Here',
-                    type: 'password',
-                    name: 'password',
-                    label: 'Password'
-                },
-                value: '',
-                valid: false,
-                validationRules: {
-                    required: true,
-                    minLength: true
-                },
-                touched: false,
-                errorMessage: 'Password should have at least 8 characters'
-            },
-            confirm_password: {
-                elementType: 'input',
-                elementConfig: {
-                    placeholder: 'Confirm Your Password',
-                    type: 'password',
-                    name: 'confirmpassword',
-                    label: 'Confirm Password'
-                },
-                value: '',
-                valid: false,
-                validationRules: {
-                    required: true,
-                    passwordMatch: true
-                },
-                touched: false,
-                errorMessage: 'Passwords Do Not Match'
-            },
-            Photo: {
-                elementType: 'input',
-                elementConfig: {
-                    type: 'file',
-                    name: 'image',
-                    label: 'Pick Your Profile Photo'
-                },
-                validationRules: {
-                    required: true
-                },
-                value: '',
-                valid: true,
-                errorMessage: ''
-            }
-        },
-        formIsValid: false,
-        file: null,
-        user: null,
-        buttonClicked: false,
-        followed: false,
-        followButtonClicked: false
-    }
+  const token = useSelector(state => state.auth.token);
+  const userId = useSelector(state => state.auth.userId);
+  const singleUserFromStore = useSelector(state => state.user.singleUser);
+  const usersFromStore = useSelector(state => state.user.users);
 
-    componentDidMount() {
-        const requestBody = {
-            query: `
+  const { isLoading, sendRequest } = useHttpClient();
+  const dispatch = useDispatch();
+
+  const fetchUser = useCallback(async () => {
+    const requestBody = {
+      query: `
                 query SingleUser($userId: String!) {
                     singleUser(userId: $userId) {
                         _id
@@ -139,194 +59,200 @@ class UserProf extends Component {
                     }
                 }
             `,
-            variables: {
-                userId: this.props.match.params.id
-            }
-        };
-        return axios.post('http://localhost:8080/graphql', requestBody, {
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            cancelToken: this.signal.token
-        }).then(result => {
-            const userProfile = result.data.data.singleUser;
-            this.setState({user: userProfile});
-            userProfile.followers.forEach(follower => {
-                if (follower._id === this.props.userId) {
-                    this.setState({followed: true});
-                    const followButton = document.querySelector('.userProfile__user-flex__details__buttons-flex__link button');
-                    const input = document.querySelector('input[class="followInput"]');
-                    input.checked = true;
-                    followButton.style.backgroundColor = 'green';
-                }
-            });
-        });
-    }
+      variables: {
+        userId: props.match.params.id
+      }
+    };
 
-    componentWillUnmount() {
-        this.signal.cancel('cancelled');
-    }
-
-    changeInput = (event, inputType) => {
-        const editprofileForm = {...this.state.editprofileForm};
-        const stateElement = editprofileForm[inputType];
-        if (inputType === 'Photo') {
-            const file = event.target.files[0];
-            this.setState({file: file, imageSelected: URL.createObjectURL(file)});
+    try {
+      const response = await sendRequest("graphql", requestBody, {
+        headers: {
+          "Content-Type": "application/json"
         }
-        stateElement.value = event.target.value;
-        stateElement.touched = true;
-        if (inputType === 'password') {
-            editprofileForm['confirm_password'].value = '';
-            editprofileForm['confirm_password'].valid = false;
-        }
-        if (inputType === 'confirm_password') {
-            if (stateElement.value === editprofileForm['password'].value) {
-                stateElement.valid = true;
-            } else {
-                stateElement.valid = false;
-            }
-        } else {
-            stateElement.valid = this.checkValidity(stateElement.validationRules, stateElement.value);
-        }
-        editprofileForm[inputType] = stateElement;
+      });
 
-        let formIsValid = true;
-        for (let key in editprofileForm) {
-            formIsValid = editprofileForm[key].valid && formIsValid;
+      const userProfile = response.data.data.singleUser;
+      dispatch({
+        type: ActionTypes.SET_SINGLE_USER,
+        user: userProfile,
+        id: props.match.params.id
+      });
+      const followButton = document.querySelector(
+        ".userProfile__user-flex__details__buttons-flex__link button"
+      );
+      const input = document.querySelector('input[class="followInput"]');
+      const foll = userProfile.followers.find(
+        follower => follower._id === userId
+      );
+      console.log("foll", foll);
+      if (foll) {
+        setfollowed(true);
+        if (input) {
+          input.checked = true;
         }
+        if (followButton) {
+          followButton.style.backgroundColor = "green";
+        }
+      } else {
+        setfollowed(false);
+        if (input) {
+          input.checked = false;
+        }
+        if (followButton) {
+          followButton.style.backgroundColor = "rgb(5, 56, 107)";
+        }
+      }
+    } catch (err) {}
+  }, [dispatch, userId, props.match.params.id]);
 
-        this.setState({editprofileForm: editprofileForm, formIsValid: formIsValid});
+  useEffect(() => {
+    if (usersFromStore.length <= 0) {
+      fetchUser();
+    } else {
+      const targetedUser = usersFromStore.find(
+        user => user._id === props.match.params.id
+      );
+      console.log(usersFromStore);
+      console.log(props.match.params.id);
+      console.log("targetedUser", targetedUser);
+      dispatch({
+        type: ActionTypes.SET_SINGLE_USER,
+        user: targetedUser,
+        id: props.match.params.id
+      });
+      const foll = targetedUser.followers.find(
+        follower => follower._id === userId
+      );
+      console.log("foll", foll);
+      if (foll) {
+        setTimeout(() => {
+          const followButton = document.querySelector(
+            ".userProfile__user-flex__details__buttons-flex__link button"
+          );
+          const input = document.querySelector('input[class="followInput"]');
+          setfollowed(true);
+          if (input) {
+            input.checked = true;
+          }
+          if (followButton) {
+            followButton.style.backgroundColor = "green";
+          }
+        }, 1);
+      } else {
+        setfollowed(false);
+        const followButton = document.querySelector(
+          ".userProfile__user-flex__details__buttons-flex__link button"
+        );
+        const input = document.querySelector('input[class="followInput"]');
+        if (input) {
+          input.checked = false;
+        }
+        if (followButton) {
+          followButton.style.backgroundColor = "rgb(5, 56, 107)";
+        }
+      }
     }
+  }, [dispatch, fetchUser, props.match.params.id, userId]);
 
-    checkValidity = (rules, value) => {
-        let isValid = true;
-        if (rules.required) {
-            isValid = value.trim() !== '' && isValid;
+  const viewBackdropp = () => {
+    setviewBackdrop(true);
+    setviewModal(true);
+  };
+
+  const closeBackdrop = () => {
+    setviewBackdrop(false);
+    setviewModal(false);
+  };
+
+  const onGoToPost = post => {
+    props.history.push({
+      pathname: "/post/" + post._id,
+      postId: post._id
+    });
+  };
+
+  const editProfile = async event => {
+    event.preventDefault();
+    setbuttonClicked(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      const res = await axios.post("/insertupdatePostImage", formData, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token
         }
-
-        if (rules.emailValid) {
-            var re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-            isValid = re.test(value) && isValid;
-        }
-
-        if (rules.minLength) {
-            isValid = value.length >= 8 && isValid;
-        }
-
-        return isValid;
-    }
-
-    viewBackdrop = () => {
-        const form = {...this.state.editprofileForm};
-        const name = form['name'];
-        name.value = this.state.user.name;
-        name.valid = true;
-        form['name'] = name;
-
-        const email = form['email'];
-        email.value = this.state.user.email;
-        email.valid = true;
-        form['email'] = email;
-
-        return this.setState({viewBackdrop: true, viewModal: true, editProfileForm: form, imageSelected: this.state.user.photo});
-    }
-
-    closeBackdrop = () => {
-        this.setState({viewBackdrop: false, viewModal: false});
-    }
-
-    onGoToPost = (post) => {
-        this.signal.cancel('cancelled');
-        localStorage.setItem('post', JSON.stringify(post));
-        this.props.history.push({
-            pathname: '/post/' + post._id,
-            postId: post._id
-        });
-    }
-
-    editProfile = (event) => {
-        event.preventDefault();
-        this.setState(prevState => {
-            return {
-                editProfileForm: {
-                    ...prevState.editProfileForm,
-                    photo: {
-                        ...prevState.editProfileForm.photo,
-                        value: ''
-                    }
-                }
-            }
-        })
-        this.setState({buttonClicked: true});
-        const formData = new FormData();
-        formData.append('image', this.state.file);
-        return axios.put('/insertupdatePostImage', formData, {
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + this.props.token
-            }
-        }).then(filePath => {
-            const filepath = filePath.data.filePath;
-            let path;
-            if (filepath === 'notFound') {
-                path = this.state.user.photo;
-            } else {
-                path = filepath;
-            }
-            const requestBody = {
-                query: `
-                    mutation EditUserProfile($id: String!, $name: String!, $email: String!, $password: String, $photo: String!) {
-                        editUserProfile(editProfileInput: {
-                            id: $id,
-                            name: $name,
-                            email: $email,
-                            password: $password,
-                            photo: $photo
-                          }) {
-                            _id
-                            name
-                            email
-                            photo
-                            createdAt
-                            posts {
+      });
+      const filepath = res.data.filePath;
+      let path;
+      if (filepath === "notFound") {
+        path = singleUserFromStore.photo;
+      } else {
+        path = filepath;
+      }
+      const requestBody = {
+        query: `
+                        mutation EditUserProfile($id: String!, $name: String!, $email: String!, $password: String, $photo: String!) {
+                            editUserProfile(editProfileInput: {
+                                id: $id,
+                                name: $name,
+                                email: $email,
+                                password: $password,
+                                photo: $photo
+                              }) {
                                 _id
-                                title
-                            }
-                          }
-                    }
-                `,
-                variables: {
-                    id: this.props.match.params.id,
-                    name: this.state.editprofileForm.name.value,
-                    email: this.state.editprofileForm.email.value,
-                    password: this.state.editprofileForm.password.value,
-                    photo: path
-                }
-            }
-            return axios.post('http://localhost:8080/graphql', requestBody, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + this.props.token
-                }
-            }).then(result => {
-                const updatedUser = result.data.data.editUserProfile;
-                const userState = {...this.state.user};
-                userState.email = updatedUser.email;
-                userState.password = updatedUser.password;
-                userState.name = updatedUser.name;
-                userState.photo = path;
-                this.setState({buttonClicked: false, viewBackdrop: false, viewModal: false, user: userState})
-            })
-        })
-    }
+                                name
+                                email
+                                photo
+                                createdAt
+                                posts {
+                                    _id
+                                    title
+                                }
+                              }
+                        }
+                    `,
+        variables: {
+          id: this.props.match.params.id,
+          name: this.state.editprofileForm.name.value,
+          email: this.state.editprofileForm.email.value,
+          password: this.state.editprofileForm.password.value,
+          photo: path
+        }
+      };
 
-    followUser = () => {
-        this.setState({followButtonClicked: true});
-        let requestBody;
-        if (!this.state.followed) {
-            requestBody = {
-                query: `
+      const editResponse = await axios.post(
+        "http://localhost:8080/graphql",
+        requestBody,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token
+          }
+        }
+      );
+      const updatedUser = editResponse.data.data.editUserProfile;
+      dispatch({
+        type: ActionTypes.SET_SINGLE_USER,
+        user: updatedUser,
+        id: props.match.params.id
+      });
+      setbuttonClicked(false);
+      setviewBackdrop(false);
+      setviewModal(false);
+    } catch (err) {
+      setUserErr(err);
+      setbuttonClicked(false);
+    }
+  };
+
+  const followUser = async () => {
+    setfollowButtonClicked(true);
+    let requestBody;
+    if (!followed) {
+      requestBody = {
+        query: `
                     mutation FollowUser($userId: String!) {
                         followUser(userId: $userId) {
                             _id
@@ -334,13 +260,13 @@ class UserProf extends Component {
                         }
                     }
                 `,
-                variables: {
-                    userId: this.state.user._id
-                }
-            };
-        } else {
-            requestBody = {
-                query: `
+        variables: {
+          userId: singleUserFromStore._id
+        }
+      };
+    } else {
+      requestBody = {
+        query: `
                     mutation UnfollowUser($userId: String!) {
                         unFollowUser(userId: $userId) {
                             _id
@@ -348,224 +274,173 @@ class UserProf extends Component {
                         }
                     }
                 `,
-                variables: {
-                    userId: this.state.user._id
-                }
-            };
+        variables: {
+          userId: singleUserFromStore._id
         }
-
-        return axios.post('http://localhost:8080/graphql', requestBody, {
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + this.props.token
-            }
-        }).then(result => {
-            this.setState({followButtonClicked: false})
-            if (result.data.data.followUser) {
-                this.setState({followed: true});
-                const followButton = document.querySelector('.userProfile__user-flex__details__buttons-flex__link button');
-                followButton.style.backgroundColor = 'green';
-                const userState = {...this.state.user};
-                userState.followers.push(result.data.data.followUser)
-                this.setState({user: userState});
-            } else {
-                this.setState({followed: false});
-                const followButton = document.querySelector('.userProfile__user-flex__details__buttons-flex__link button');
-                followButton.style.backgroundColor = '#05386B';
-                const userState = {...this.state.user};
-                const filteredFollowers = userState.followers.filter(p => {
-                    return p._id !== this.props.userId
-                })
-                userState.followers = filteredFollowers;
-                this.setState({user: userState});
-            }
-        })
+      };
     }
 
-    onGoTofollowerProfile = (id) => {
-        this.props.history.push('/userprofile/' + id);
-        const requestBody = {
-            query: `
-                query SingleUser($userId: String!) {
-                    singleUser(userId: $userId) {
-                        _id
-                        name
-                        email
-                        photo
-                        createdAt
-                        posts {
-                            _id
-                            title
-                            likes {
-                                _id
-                                name
-                            }
-                        }
-                        followers {
-                            _id
-                            name
-                        }
-                        following {
-                            _id
-                            name
-                        }
-                    }
-                }
-            `,
-            variables: {
-                userId: id
-            }
-        };
-        return axios.post('http://localhost:8080/graphql', requestBody, {
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            cancelToken: this.signal.token
-        }).then(result => {
-            const userProfile = result.data.data.singleUser;
-            if (userProfile.followers.length <= 0) {
-                this.setState({followed: false});
-                const followButton = document.querySelector('.userProfile__user-flex__details__buttons-flex__link button');
-                const input = document.querySelector('input[class="followInput"]');
-                if (input) {
-                    input.checked = false;
-                    followButton.style.backgroundColor = '#05386B';
-                }
-            }
-            this.setState({user: userProfile});
-            userProfile.followers.forEach(follower => {
-                if (follower._id === this.props.userId) {
-                    this.setState({followed: true});
-                    const followButton = document.querySelector('.userProfile__user-flex__details__buttons-flex__link button');
-                    followButton.style.backgroundColor = 'green';
-                }
-            });
-        });
+    const followResponse = await axios.post("graphql", requestBody, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token
+      }
+    });
+    setfollowButtonClicked(false);
+    if (followResponse.data.data.followUser) {
+      setfollowed(true);
+      const followButton = document.querySelector(
+        ".userProfile__user-flex__details__buttons-flex__link button"
+      );
+      followButton.style.backgroundColor = "green";
+      const userState = { ...singleUserFromStore };
+      userState.followers.push(followResponse.data.data.followUser);
+      dispatch({
+        type: ActionTypes.SET_SINGLE_USER,
+        user: userState,
+        id: props.match.params.id,
+        userId: userId
+      });
+    } else {
+      setfollowed(false);
+      const followButton = document.querySelector(
+        ".userProfile__user-flex__details__buttons-flex__link button"
+      );
+      followButton.style.backgroundColor = "#05386B";
+      const userState = { ...singleUserFromStore };
+      const filteredFollowers = userState.followers.filter(p => {
+        return p._id !== userId;
+      });
+      userState.followers = filteredFollowers;
+      dispatch({
+        type: ActionTypes.SET_SINGLE_USER,
+        user: userState,
+        id: props.match.params.id,
+        userId: userId
+      });
     }
+  };
 
-    render() {
-        let elementArray = [];
-        for (let key in this.state.editprofileForm) {
-            elementArray.push({
-                id: key,
-                config: this.state.editprofileForm[key]
-            });
-        }
-        const {user} = this.state;
-        if (user === null) {
-            return <Spinner />
-        }
-        return (
-            <div className="userProfile">
-            <h1>Profile</h1>
-            <ProfilePage        viewBackdrop={this.viewBackdrop}
-                                photo={this.state.user.photo}
-                                name={this.state.user.name}
-                                email={this.state.user.email}
-                                date={this.state.user.createdAt}
-                                token={this.props.token}
-                                userId={this.props.userId}
-                                profileUserId={this.state.user._id}
-                                followUser={this.followUser}
-                                followed={this.state.followed}
-                                followButtonClicked={this.state.followButtonClicked} />
-                    <hr />
-            <div className="userProfile__userActivities-flex">
-                <div className="userProfile__userActivities-flex__activity">
-                    <span>{this.state.user.followers.length}</span> Followers
-                    <hr />
-                    <ul>
-                        {this.state.user.followers.map(follower => {
-                            return (                                
-                                <li key={follower._id}>
-                                    <span onClick={this.onGoTofollowerProfile.bind(this, follower._id)}>{follower.name}</span>
-                                </li>
-                            )
-                        })}
-                    </ul>
-                </div>
-                <div className="userProfile__userActivities-flex__activity">
-                    <span>{this.state.user.following.length}</span> Following
-                    <hr />
-                    <ul>
-                    {this.state.user.following.map(follower => {
-                        return (                                
-                            <li key={follower._id}>
-                                <span onClick={this.onGoTofollowerProfile.bind(this, follower._id)}>{follower.name}</span>
-                            </li>
-                        )
-                    })}
-                    </ul>
-                </div>
-                <div className="userProfile__userActivities-flex__activity">
-                    <span>{this.state.user.posts.length}</span> Posts
-                    <hr />
-                    <ul>
-                        {this.state.user.posts.map(post => {
-                            return (
-                                <li key={post._id}>
-                                    <span onClick={this.onGoToPost.bind(this, post)}>{post.title}</span>
-                                </li>
-                            )
-                        })}
-                    </ul>
-                </div>
-            </div>
+  const onGoTofollowerProfile = id => {
+    props.history.push("/userprofile/" + id);
+  };
+
+  return (
+    <div className="userProfile">
+      <h1>Profile</h1>
+      {isLoading ? (
+        <Spinner />
+      ) : (
+        singleUserFromStore && (
+          <>
+            <ProfilePage
+              viewBackdrop={viewBackdropp}
+              photo={singleUserFromStore.photo}
+              name={singleUserFromStore.name}
+              email={singleUserFromStore.email}
+              date={singleUserFromStore.createdAt}
+              token={token}
+              userId={userId}
+              profileUserId={singleUserFromStore._id}
+              followUser={followUser}
+              followed={followed}
+              followButtonClicked={followButtonClicked}
+            />
             <hr />
-            <Backdrop show={this.state.viewBackdrop} />
-            <CSSTransition mountOnEnter
-                           unmountOnExit
-                           timeout={{
-                               enter: 1000,
-                               exit: 500
-                           }}
-                           in={this.state.viewModal}
-                           classNames={{
-                               enter: '',
-                               enterActive: 'ModalOpen',
-                               exit: '',
-                               exitActive: 'ModalClose'
-                           }}>
-                <EditProfileModal viewModal={this.state.viewModal}>
-                    <h1>Edit Your Profile</h1>
-                    <div className="editProfile__icon" onClick={this.closeBackdrop}>
-                        <i className="fas fa-times-circle"></i>
-                    </div>
-                    <form className="editProfile__form">
-                        {elementArray.map(element => {
-                                return (
-                                    <div key={element.id}>
-                                        <Input elementType={element.config.elementType}
-                                            elementConfig={element.config.elementConfig}
-                                            value={element.config.value}
-                                            invalidN={!element.config.valid}
-                                            touched={element.config.touched}
-                                            label={element.config.label}
-                                            key={element.id}
-                                            changed={(event) => this.changeInput(event, element.id)}
-                                            errorMessage={element.config.errorMessage} />
-                                    </div>
-                                )
-                            })}
-                            {this.state.imageSelected
-                             ?
-                             <img src={this.state.imageSelected} alt="profileImage" />
-                             :
-                             null}
-                            <Button type="submit" disabled={!this.state.formIsValid || this.state.buttonClicked} click={this.editProfile}>Edit Profile</Button>
-                    </form>
-                </EditProfileModal>
-            </CSSTransition>
-        </div>
+            <div className="userProfile__userActivities-flex">
+              <div className="userProfile__userActivities-flex__activity">
+                <span>{singleUserFromStore.followers.length}</span> Followers
+                <hr />
+                <ul>
+                  {singleUserFromStore.followers.map(follower => {
+                    return (
+                      <li key={follower._id}>
+                        <span
+                          onClick={onGoTofollowerProfile.bind(
+                            this,
+                            follower._id
+                          )}
+                        >
+                          {follower.name}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+              <div className="userProfile__userActivities-flex__activity">
+                <span>{singleUserFromStore.following.length}</span> Following
+                <hr />
+                <ul>
+                  {singleUserFromStore.following.map(follower => {
+                    return (
+                      <li key={follower._id}>
+                        <span
+                          onClick={onGoTofollowerProfile.bind(
+                            this,
+                            follower._id
+                          )}
+                        >
+                          {follower.name}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+              <div className="userProfile__userActivities-flex__activity">
+                <span>{singleUserFromStore.posts.length}</span> Posts
+                <hr />
+                <ul>
+                  {singleUserFromStore.posts.map(post => {
+                    return (
+                      <li key={post._id}>
+                        <span onClick={onGoToPost.bind(this, post)}>
+                          {post.title}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            </div>
+          </>
         )
-    }
-}
+      )}
+      <hr />
+      <Backdrop show={viewBackdrop} />
+      <CSSTransition
+        mountOnEnter
+        unmountOnExit
+        timeout={{
+          enter: 1000,
+          exit: 500
+        }}
+        in={viewModal}
+        classNames={{
+          enter: "",
+          enterActive: "ModalOpen",
+          exit: "",
+          exitActive: "ModalClose"
+        }}
+      >
+        <EditProfileModal viewModal={viewModal}>
+          <h1>Edit Your Profile</h1>
+          <div className="editProfile__icon" onClick={closeBackdrop}>
+            <i className="fas fa-times-circle"></i>
+          </div>
+          <form className="editProfile__form">
+            {imageSelected ? (
+              <img src={imageSelected} alt="profileImage" />
+            ) : null}
+            <Button type="submit" disabled={buttonClicked} click={editProfile}>
+              Edit Profile
+            </Button>
+          </form>
+        </EditProfileModal>
+      </CSSTransition>
+    </div>
+  );
+};
 
-const mapStateToProps = state => {
-    return {
-        userId: state.auth.userId,
-        token: state.auth.token
-    }
-}
-
-export default connect(mapStateToProps)(UserProf);
+export default UserProf;

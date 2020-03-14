@@ -119,15 +119,27 @@ const HomePage = props => {
       query: `
                 query {
                     users {
-                    _id
-                    name
-                    photo
-                    posts {
-                    _id
-                    }
-                    followers {
-                        _id
-                    }
+                      _id
+                      name
+                      email
+                      photo
+                      createdAt
+                      posts {
+                          _id
+                          title
+                          likes {
+                              _id
+                              name
+                          }
+                      }
+                      followers {
+                          _id
+                          name
+                      }
+                      following {
+                          _id
+                          name
+                      }
                 }  
                 }
             `
