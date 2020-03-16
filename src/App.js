@@ -74,6 +74,34 @@ const App = props => {
 
   useEffect(() => {
     const socket = OpenSocket("http://localhost:8080");
+    socket.on("newpost", data => {
+      console.log("data from socket", data);
+      dispatch({
+        type: ActionTypes.ADD_POST,
+        post: data.newPost
+      });
+      dispatch({
+        type: ActionTypes.ADD_POST_TO_USER,
+        newpost: {
+          _id: data.newPost._id,
+          title: data.newPost.title,
+          likes: data.newPost.likes,
+        },
+        userid: data.newPost.user._id
+      });
+    });
+    socket.on("deletedPost", data => {
+      console.log('from socket ==>>', data);
+      dispatch({
+        type: ActionTypes.DELETE_POST,
+        id: data.deletedPost._id
+      });
+      dispatch({
+        type: ActionTypes.DELETE_POST_FROM_USER,
+        deletepost: data.deletedPost,
+        userid: data.deletedPost.user
+      });
+    });
     socket.on("newcomment", data => {
       console.log("data from socket", data);
       const currentRoute = props.location.pathname.split("/");
@@ -147,7 +175,7 @@ const App = props => {
     return () => {
       socket.close();
     };
-  }, [singlePostFromStore, props.location.pathname, userId, dispatch]);
+  }, [singlePostFromStore, props.location.pathname, userId]);
 
   useEffect(() => {
     const expirationDate = localStorage.getItem("expDate");

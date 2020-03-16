@@ -2,14 +2,13 @@ import React, { useState } from "react";
 import "./NewPost.css";
 import Button from "../../../shared/UI/Button/Button";
 import Input from "../../../shared/Form/Input/Input";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
 import * as idb from "idb";
 import { ObjectID } from "bson";
 import ReactSnackBar from "react-js-snackbar";
 import { useForm } from "../../../shared/Form/FormState/FormState";
 import { useHttpClient } from "../../../shared/http/http";
 import { REQUIRE, MAXLENGTH } from "../../../shared/Form/Validators/Validators";
-import * as ActionTypes from "../../../store/actionTypes/ActionTypes";
 import ErrorModal from "../../../shared/UI/ErrorModal/ErrorModal";
 
 const dbPromise = idb.openDB("allPosts", 1, db => {
@@ -45,8 +44,7 @@ const NewPost = props => {
   const token = useSelector(state => state.auth.token);
   const userId = useSelector(state => state.auth.userId);
 
-  const { isLoading, sendRequest } = useHttpClient();
-  const dispatch = useDispatch();
+  const { sendRequest } = useHttpClient();
 
   const [initialState, inputHandler] = useForm(
     {
@@ -121,10 +119,6 @@ const NewPost = props => {
         }
       });
       const newpost = createpostRes.data.data.createPost;
-      dispatch({
-        type: ActionTypes.ADD_POST,
-        post: newpost
-      });
       navigator.serviceWorker.ready.then(reg => {
         reg.active.postMessage(
           JSON.stringify({

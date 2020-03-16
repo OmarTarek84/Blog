@@ -11,6 +11,13 @@ import Spinner from "../../../shared/UI/Spinner/Spinner";
 import { useSelector, useDispatch } from "react-redux";
 import { useHttpClient } from "../../../shared/http/http";
 import * as ActionTypes from "../../../store/actionTypes/ActionTypes";
+import { useForm } from "../../../shared/Form/FormState/FormState";
+import {
+  REQUIRE,
+  MATCHPASSWORDS,
+  EMAIL,
+  MINLENGTH
+} from "../../../shared/Form/Validators/Validators";
 
 const UserProf = props => {
   const [viewBackdrop, setviewBackdrop] = useState(false);
@@ -28,6 +35,27 @@ const UserProf = props => {
   const usersFromStore = useSelector(state => state.user.users);
 
   const { isLoading, sendRequest } = useHttpClient();
+  const [initialState, inputHandler] = useForm(
+    {
+      name: {
+        value: "",
+        valid: false
+      },
+      email: {
+        value: "",
+        valid: false
+      },
+      password: {
+        value: "",
+        valid: false
+      },
+      confirmPassword: {
+        value: "",
+        valid: false
+      }
+    },
+    false
+  );
   const dispatch = useDispatch();
 
   const fetchUser = useCallback(async () => {
@@ -164,6 +192,12 @@ const UserProf = props => {
     setviewModal(false);
   };
 
+  const changeFile = event => {
+    const filee = event.target.files[0];
+    setFile(filee);
+    setImageSelected(URL.createObjectURL(filee));
+  };
+
   const onGoToPost = post => {
     props.history.push({
       pathname: "/post/" + post._id,
@@ -185,12 +219,14 @@ const UserProf = props => {
         }
       });
       const filepath = res.data.filePath;
+      console.log('filepath', filepath);
       let path;
       if (filepath === "notFound") {
         path = singleUserFromStore.photo;
       } else {
         path = filepath;
       }
+      console.log('path', path);
       const requestBody = {
         query: `
                         mutation EditUserProfile($id: String!, $name: String!, $email: String!, $password: String, $photo: String!) {
@@ -202,28 +238,40 @@ const UserProf = props => {
                                 photo: $photo
                               }) {
                                 _id
+                        name
+                        email
+                        photo
+                        createdAt
+                        posts {
+                            _id
+                            title
+                            likes {
+                                _id
                                 name
-                                email
-                                photo
-                                createdAt
-                                posts {
-                                    _id
-                                    title
-                                }
+                            }
+                        }
+                        followers {
+                            _id
+                            name
+                        }
+                        following {
+                            _id
+                            name
+                        }
                               }
                         }
                     `,
         variables: {
-          id: this.props.match.params.id,
-          name: this.state.editprofileForm.name.value,
-          email: this.state.editprofileForm.email.value,
-          password: this.state.editprofileForm.password.value,
+          id: props.match.params.id,
+          name: initialState.inputs.name.value,
+          email: initialState.inputs.email.value,
+          password: initialState.inputs.password.value,
           photo: path
         }
       };
 
       const editResponse = await axios.post(
-        "http://localhost:8080/graphql",
+        "/graphql",
         requestBody,
         {
           headers: {
@@ -233,14 +281,16 @@ const UserProf = props => {
         }
       );
       const updatedUser = editResponse.data.data.editUserProfile;
+      console.log('edit ==>>', updatedUser)
       dispatch({
         type: ActionTypes.SET_SINGLE_USER,
         user: updatedUser,
         id: props.match.params.id
       });
-      setbuttonClicked(false);
       setviewBackdrop(false);
       setviewModal(false);
+      setbuttonClicked(false);
+
     } catch (err) {
       setUserErr(err);
       setbuttonClicked(false);
@@ -430,10 +480,54 @@ const UserProf = props => {
             <i className="fas fa-times-circle"></i>
           </div>
           <form className="editProfile__form">
-            {imageSelected ? (
-              <img src={imageSelected} alt="profileImage" />
-            ) : null}
-            <Button type="submit" disabled={buttonClicked} click={editProfile}>
+            {singleUserFromStore && (
+              <>
+                <div className="formParent">
+                  <Input
+                    id="name"
+                    placeholder="Type Your Name Here"
+                    onInput={inputHandler}
+                    validators={[REQUIRE()]}
+                    label="Name"
+                    type="text"
+                    initialValue={singleUserFromStore.name}
+                    isValid={true}
+                  />
+                  <Input
+                    id="email"
+                    placeholder="Type Your Email Here"
+                    onInput={inputHandler}
+                    validators={[REQUIRE(), EMAIL()]}
+                    label="Email"
+                    type="email"
+                    initialValue={singleUserFromStore.email}
+                    isValid={true}
+                  />
+                  <Input
+                    id="password"
+                    placeholder="Type Your Password Here"
+                    onInput={inputHandler}
+                    validators={[REQUIRE(), MINLENGTH(8)]}
+                    label="New Password"
+                    type="password"
+                  />
+                  <Input
+                    id="confirmPassword"
+                    placeholder="Re-Enter Your Password"
+                    onInput={inputHandler}
+                    validators={[
+                      REQUIRE(),
+                      MATCHPASSWORDS(initialState.inputs.password.value)
+                    ]}
+                    label="Confirm Password"
+                    type="password"
+                  />
+                  <input type="file" name="image" onChange={changeFile} />
+                </div>
+                  <img src={imageSelected || singleUserFromStore.photo} alt="profileImage" />
+              </>
+            )}
+            <Button type="submit" disabled={!initialState.formIsValid || buttonClicked} click={editProfile}>
               Edit Profile
             </Button>
           </form>

@@ -1,5 +1,5 @@
 .profileModal {
-    position: fixed;
+    position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -7,6 +7,7 @@
     background-color: white;
     padding: 15px;
     z-index: 1000;
+    margin: 80px 0;
 }
 
 .profileModal h1 {

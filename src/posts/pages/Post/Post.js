@@ -290,10 +290,6 @@ const Post = props => {
         }
       });
       setdeleteButtonClicked(false);
-      dispatch({
-        type: ActionTypes.DELETE_POST,
-        id: singlePostFromStore._id
-      });
       props.history.push("/posts");
     } catch (err) {
       setPostError(err);

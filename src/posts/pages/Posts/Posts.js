@@ -120,28 +120,6 @@ const Posts = props => {
     }
   }, [token, configurePushSub]);
 
-  useEffect(() => {
-    const socket = OpenWebSocket("http://localhost:8080");
-    socket.on("newpost", data => {
-      console.log("data from socket", data);
-      // this.setState(prevState => {
-      //     return {
-      //         posts: prevState.posts.concat(data.newPost)
-      //     };
-      // });
-    });
-    socket.on("deletedPost", data => {
-      console.log("data from socket", data);
-      // const filteredPosts = this.state.posts.filter(p => {
-      //     return p._id !== data.deletedPost._id;
-      // });
-      // this.setState({posts: filteredPosts});
-    });
-    return () => {
-      socket.close();
-    };
-  }, []);
-
   const fetchPosts = useCallback(async () => {
     setPostsError('');
     const requestBody = {
